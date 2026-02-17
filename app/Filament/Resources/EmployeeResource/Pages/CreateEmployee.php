@@ -9,4 +9,11 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateEmployee extends CreateRecord
 {
     protected static string $resource = EmployeeResource::class;
+
+    protected static ?string $title = 'Tambah Karyawan';
+    
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

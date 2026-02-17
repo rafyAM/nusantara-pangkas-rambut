@@ -13,7 +13,9 @@ class ListBranches extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                -> label('Tambah Cabang')
+                -> icon('heroicon-o-plus'),
         ];
     }
 }

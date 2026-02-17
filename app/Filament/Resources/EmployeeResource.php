@@ -24,7 +24,7 @@ class EmployeeResource extends Resource
 
     protected static ?string $modelLabel = 'Karyawan';
 
-    protected static ?string $pluralModelLabel = 'Karyawan';
+    protected static ?string $pluralModelLabel = 'Tambah Karyawan';
 
     protected static ?int $navigationSort = 3;
 

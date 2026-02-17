@@ -9,6 +9,8 @@ class CreateBranch extends CreateRecord
 {
     protected static string $resource = BranchResource::class;
 
+    protected static ?string $title = 'Tambah Cabang';
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
