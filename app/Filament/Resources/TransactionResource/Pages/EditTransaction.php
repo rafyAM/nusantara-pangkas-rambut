@@ -14,6 +14,25 @@ class EditTransaction extends EditRecord
     {
         return [
             Actions\DeleteAction::make(),
+            Actions\RestoreAction::make(),
         ];
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $data['total_amount'] = collect($this->data['items'] ?? [])
+            ->sum(fn ($item) => floatval($item['subtotal'] ?? 0));
+
+        return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $this->record->recalculateTotal();
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }

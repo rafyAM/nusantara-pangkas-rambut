@@ -4,26 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Branch extends Model
+class Customer extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
-        'slug',
+        'phone',
+        'email',
+        'gender',
         'address',
     ];
-
-    public function users()
-    {
-        return $this->belongsToMany(User::class);
-    }
-
-    public function employees()
-    {
-        return $this->hasMany(Employee::class);
-    }
 
     public function transactions()
     {
