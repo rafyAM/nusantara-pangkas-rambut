@@ -27,14 +27,14 @@ class DatabaseSeeder extends Seeder
 
         // Seed Services
         $services = [
-            ['name' => 'Potong Rambut Reguler', 'price' => 35000, 'duration_minutes' => 30, 'description' => 'Potong rambut standar dengan hasil rapi'],
-            ['name' => 'Potong Rambut Premium', 'price' => 50000, 'duration_minutes' => 45, 'description' => 'Potong rambut premium dengan konsultasi gaya'],
-            ['name' => 'Cukur Jenggot', 'price' => 20000, 'duration_minutes' => 15, 'description' => 'Rapikan dan cukur jenggot'],
-            ['name' => 'Creambath', 'price' => 75000, 'duration_minutes' => 60, 'description' => 'Perawatan creambath untuk kesehatan rambut'],
-            ['name' => 'Hair Coloring', 'price' => 150000, 'duration_minutes' => 90, 'description' => 'Pewarnaan rambut profesional'],
-            ['name' => 'Hair Wash', 'price' => 25000, 'duration_minutes' => 20, 'description' => 'Cuci rambut dengan shampoo premium'],
-            ['name' => 'Pijat Kepala', 'price' => 30000, 'duration_minutes' => 20, 'description' => 'Pijat kepala relaksasi'],
-            ['name' => 'Styling Rambut', 'price' => 40000, 'duration_minutes' => 30, 'description' => 'Penataan dan styling rambut'],
+            ['name' => 'Potong Rambut Reguler', 'price' => 35000, 'description' => 'Potong rambut standar dengan hasil rapi'],
+            ['name' => 'Potong Rambut Premium', 'price' => 50000, 'description' => 'Potong rambut premium dengan konsultasi gaya'],
+            ['name' => 'Cukur Jenggot', 'price' => 20000, 'description' => 'Rapikan dan cukur jenggot'],
+            ['name' => 'Creambath', 'price' => 75000, 'description' => 'Perawatan creambath untuk kesehatan rambut'],
+            ['name' => 'Hair Coloring', 'price' => 150000, 'description' => 'Pewarnaan rambut profesional'],
+            ['name' => 'Hair Wash', 'price' => 25000, 'description' => 'Cuci rambut dengan shampoo premium'],
+            ['name' => 'Pijat Kepala', 'price' => 30000, 'description' => 'Pijat kepala relaksasi'],
+            ['name' => 'Styling Rambut', 'price' => 40000, 'description' => 'Penataan dan styling rambut'],
         ];
 
         foreach ($services as $service) {

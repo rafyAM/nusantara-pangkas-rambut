@@ -44,13 +44,6 @@ class ServiceResource extends Resource
                             ->numeric()
                             ->prefix('Rp')
                             ->minValue(0),
-                        Forms\Components\TextInput::make('duration_minutes')
-                            ->label('Durasi')
-                            ->required()
-                            ->numeric()
-                            ->suffix('menit')
-                            ->default(30)
-                            ->minValue(1),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
@@ -74,10 +67,6 @@ class ServiceResource extends Resource
                 Tables\Columns\TextColumn::make('price')
                     ->label('Harga')
                     ->money('IDR')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('duration_minutes')
-                    ->label('Durasi')
-                    ->suffix(' menit')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Aktif')
