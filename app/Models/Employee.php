@@ -12,6 +12,7 @@ class Employee extends Model
 
     protected $fillable = [
         'branch_id',
+        'user_id',
         'name',
         'phone',
         'email',
@@ -26,6 +27,11 @@ class Employee extends Model
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function transactions()

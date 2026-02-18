@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\EmployeeResource\Pages;
 use App\Models\Employee;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -11,6 +12,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class EmployeeResource extends Resource
 {
@@ -56,12 +59,17 @@ class EmployeeResource extends Resource
                             ->label('Posisi')
                             ->options([
                                 'barber' => 'Tukang Cukur',
-                                'senior_barber' => 'Tukang Cukur Senior',
                                 'cashier' => 'Kasir',
                                 'manager' => 'Manajer',
                             ])
                             ->required()
                             ->default('barber'),
+                        Forms\Components\TextInput::make('password')
+                            ->label('Password Login')
+                            ->password()
+                            ->dehydrateStateUsing(fn($state) => Hash::make($state))
+                            ->dehydrated(fn($state) => filled($state))
+                            ->required(fn(string $context): bool => $context === 'create'),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
@@ -88,16 +96,14 @@ class EmployeeResource extends Resource
                 Tables\Columns\TextColumn::make('position')
                     ->label('Posisi')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'barber' => 'Tukang Cukur',
-                        'senior_barber' => 'Tukang Cukur Senior',
                         'cashier' => 'Kasir',
                         'manager' => 'Manajer',
                         default => $state,
                     })
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'barber' => 'info',
-                        'senior_barber' => 'success',
                         'cashier' => 'warning',
                         'manager' => 'danger',
                         default => 'gray',
@@ -120,7 +126,6 @@ class EmployeeResource extends Resource
                     ->label('Posisi')
                     ->options([
                         'barber' => 'Tukang Cukur',
-                        'senior_barber' => 'Tukang Cukur Senior',
                         'cashier' => 'Kasir',
                         'manager' => 'Manajer',
                     ]),
