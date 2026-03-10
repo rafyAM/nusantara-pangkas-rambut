@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             ServiceSeeder::class,
             EmployeeSeeder::class,
             CustomerSeeder::class,
-            TransactionSeeder::class,
         ]);
     }
 }
