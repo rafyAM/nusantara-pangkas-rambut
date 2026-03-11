@@ -8,7 +8,10 @@ class TransactionItem extends Model
 {
     protected $fillable = [
         'transaction_id',
+        'item_type',
         'service_id',
+        'product_id',
+        'employee_id',
         'quantity',
         'price',
         'subtotal',
@@ -23,7 +26,7 @@ class TransactionItem extends Model
     protected static function booted(): void
     {
         static::saving(function (TransactionItem $item) {
-            $item->subtotal = $item->price * $item->quantity;
+            $item->subtotal = (float) ($item->price * $item->quantity);
         });
     }
 
@@ -35,5 +38,15 @@ class TransactionItem extends Model
     public function service()
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function employee() // as barber
+    {
+        return $this->belongsTo(Employee::class);
     }
 }

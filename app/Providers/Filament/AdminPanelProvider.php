@@ -60,4 +60,13 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ]);
     }
+
+    public function register(): void
+    {
+        parent::register();
+        $this->app->singleton(
+            \Filament\Http\Responses\Auth\Contracts\LoginResponse::class,
+            \App\Providers\Filament\LoginResponse::class
+        );
+    }
 }

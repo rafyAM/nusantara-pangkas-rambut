@@ -53,9 +53,9 @@ class TransactionResource extends Resource
                             ->relationship(
                                 'employee',
                                 'name',
-                                fn (Builder $query, Forms\Get $get) =>
-                                    $query->where('is_active', true)
-                                        ->when($get('branch_id'), fn ($q, $branchId) => $q->where('branch_id', $branchId))
+                                fn(Builder $query, Forms\Get $get) =>
+                                $query->where('is_active', true)
+                                    ->when($get('branch_id'), fn($q, $branchId) => $q->where('branch_id', $branchId))
                             )
                             ->required()
                             ->searchable()
@@ -91,10 +91,29 @@ class TransactionResource extends Resource
                             ->label('')
                             ->relationship()
                             ->schema([
+                                Forms\Components\Select::make('item_type')
+                                    ->label('Jenis Item')
+                                    ->options([
+                                        'service' => 'Layanan',
+                                        'product' => 'Produk',
+                                    ])
+                                    ->default('service')
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function (Forms\Set $set) {
+                                        $set('service_id', null);
+                                        $set('product_id', null);
+                                        $set('employee_id', null);
+                                        $set('price', 0);
+                                        $set('subtotal', 0);
+                                    })
+                                    ->columnSpan(2),
+
                                 Forms\Components\Select::make('service_id')
                                     ->label('Layanan')
-                                    ->options(fn () => Service::where('is_active', true)->pluck('name', 'id'))
-                                    ->required()
+                                    ->options(fn() => Service::where('is_active', true)->pluck('name', 'id'))
+                                    ->required(fn(Forms\Get $get) => $get('item_type') === 'service')
+                                    ->visible(fn(Forms\Get $get) => $get('item_type') === 'service')
                                     ->searchable()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
@@ -104,7 +123,36 @@ class TransactionResource extends Resource
                                             $set('subtotal', $price * ($get('quantity') ?? 1));
                                         }
                                     })
+                                    ->columnSpan(3),
+
+                                Forms\Components\Select::make('product_id')
+                                    ->label('Produk')
+                                    ->options(fn(Forms\Get $get) => \App\Models\Product::where('is_active', true)
+                                        ->where('stock', '>', 0)
+                                        ->when($get('../../branch_id'), fn($q, $b) => $q->where('branch_id', $b))
+                                        ->pluck('name', 'id'))
+                                    ->required(fn(Forms\Get $get) => $get('item_type') === 'product')
+                                    ->visible(fn(Forms\Get $get) => $get('item_type') === 'product')
+                                    ->searchable()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                        if ($state) {
+                                            $price = \App\Models\Product::find($state)?->price ?? 0;
+                                            $set('price', $price);
+                                            $set('subtotal', $price * ($get('quantity') ?? 1));
+                                        }
+                                    })
                                     ->columnSpan(5),
+
+                                Forms\Components\Select::make('employee_id')
+                                    ->label('Barber')
+                                    ->options(fn(Forms\Get $get) => \App\Models\Employee::where('is_active', true)
+                                        ->when($get('../../branch_id'), fn($q, $b) => $q->where('branch_id', $b))
+                                        ->pluck('name', 'id'))
+                                    ->visible(fn(Forms\Get $get) => $get('item_type') === 'service')
+                                    ->searchable()
+                                    ->columnSpan(2),
+
                                 Forms\Components\TextInput::make('quantity')
                                     ->label('Qty')
                                     ->numeric()
@@ -115,7 +163,8 @@ class TransactionResource extends Resource
                                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         $set('subtotal', floatval($get('price') ?? 0) * intval($state ?? 1));
                                     })
-                                    ->columnSpan(2),
+                                    ->columnSpan(1),
+
                                 Forms\Components\TextInput::make('price')
                                     ->label('Harga')
                                     ->numeric()
@@ -126,18 +175,19 @@ class TransactionResource extends Resource
                                         $set('subtotal', floatval($state ?? 0) * intval($get('quantity') ?? 1));
                                     })
                                     ->columnSpan(2),
+
                                 Forms\Components\TextInput::make('subtotal')
                                     ->label('Subtotal')
                                     ->numeric()
                                     ->prefix('Rp')
                                     ->disabled()
                                     ->dehydrated()
-                                    ->columnSpan(3),
+                                    ->columnSpan(2),
                             ])
                             ->columns(12)
                             ->live()
-                            ->afterStateUpdated(fn (Forms\Get $get, Forms\Set $set) => self::updateTotalAmount($get, $set))
-                            ->deleteAction(fn ($action) => $action->after(fn (Forms\Get $get, Forms\Set $set) => self::updateTotalAmount($get, $set)))
+                            ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::updateTotalAmount($get, $set))
+                            ->deleteAction(fn($action) => $action->after(fn(Forms\Get $get, Forms\Set $set) => self::updateTotalAmount($get, $set)))
                             ->addActionLabel('Tambah Layanan')
                             ->defaultItems(1),
                     ]),
@@ -148,7 +198,7 @@ class TransactionResource extends Resource
                             ->label('Total Pembayaran')
                             ->content(function (Forms\Get $get): string {
                                 $items = $get('items') ?? [];
-                                $total = collect($items)->sum(fn ($item) => floatval($item['subtotal'] ?? 0));
+                                $total = collect($items)->sum(fn($item) => floatval($item['subtotal'] ?? 0));
                                 return 'Rp ' . number_format($total, 0, ',', '.');
                             }),
                         Forms\Components\Hidden::make('total_amount')
@@ -185,7 +235,7 @@ class TransactionResource extends Resource
     public static function updateTotalAmount(Forms\Get $get, Forms\Set $set): void
     {
         $items = $get('items') ?? [];
-        $total = collect($items)->sum(fn ($item) => floatval($item['subtotal'] ?? 0));
+        $total = collect($items)->sum(fn($item) => floatval($item['subtotal'] ?? 0));
         $set('total_amount', $total);
     }
 
@@ -222,7 +272,7 @@ class TransactionResource extends Resource
                 Tables\Columns\TextColumn::make('payment_method')
                     ->label('Pembayaran')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'cash' => 'Tunai',
                         'transfer' => 'Transfer',
                         'ewallet' => 'E-Wallet',
@@ -233,13 +283,13 @@ class TransactionResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'completed' => 'Selesai',
                         'pending' => 'Menunggu',
                         'cancelled' => 'Dibatalkan',
                         default => $state,
                     })
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'completed' => 'success',
                         'pending' => 'warning',
                         'cancelled' => 'danger',
@@ -281,10 +331,14 @@ class TransactionResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
@@ -311,6 +365,7 @@ class TransactionResource extends Resource
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
-            ]);
+            ])
+            ->whereNull('transactions.deleted_at');
     }
 }
