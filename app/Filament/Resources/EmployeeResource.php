@@ -43,10 +43,8 @@ class EmployeeResource extends Resource
                             ->maxLength(255),
                         Forms\Components\Select::make('branch_id')
                             ->label('Cabang')
-                            ->relationship('branch', 'name')
-                            ->required()
-                            ->searchable()
-                            ->preload(),
+                            ->options(fn () => \App\Models\Branch::pluck('name', 'id')->toArray())
+                            ->required(),
                         Forms\Components\TextInput::make('phone')
                             ->label('No. Telepon')
                             ->tel()
@@ -54,6 +52,7 @@ class EmployeeResource extends Resource
                         Forms\Components\TextInput::make('email')
                             ->label('Email')
                             ->email()
+                            ->required()
                             ->maxLength(255),
                         Forms\Components\Select::make('position')
                             ->label('Posisi')
