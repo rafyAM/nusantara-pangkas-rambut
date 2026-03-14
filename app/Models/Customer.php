@@ -37,4 +37,9 @@ class Customer extends Authenticatable
     {
         return $this->hasMany(Transaction::class);
     }
+
+    public function reservations()
+    {
+        return $this->hasMany(Reservation::class);
+    }
 }

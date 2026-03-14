@@ -7,9 +7,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth:customer', 'verified'])->name('dashboard');
+use App\Http\Controllers\CustomerDashboardController;
+
+Route::get('/dashboard', [CustomerDashboardController::class, 'index'])
+    ->middleware(['auth:customer', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth:customer')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
