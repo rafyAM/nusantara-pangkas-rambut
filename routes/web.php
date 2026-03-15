@@ -2,12 +2,12 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CustomerDashboardController;
+use App\Livewire\PosKasir;
 
 Route::get('/', function () {
     return view('welcome');
 });
-
-use App\Http\Controllers\CustomerDashboardController;
 
 Route::get('/dashboard', [CustomerDashboardController::class, 'index'])
     ->middleware(['auth:customer', 'verified'])
@@ -16,6 +16,10 @@ Route::get('/dashboard', [CustomerDashboardController::class, 'index'])
 Route::post('/reservations', [CustomerDashboardController::class, 'store'])
     ->middleware(['auth:customer', 'verified'])
     ->name('reservations.store');
+
+Route::middleware(['auth', 'role:cashier'])->group(function () {
+    Route::get('/kasir/pos', PosKasir::class)->name('kasir.pos');
+});
 
 Route::middleware('auth:customer')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
