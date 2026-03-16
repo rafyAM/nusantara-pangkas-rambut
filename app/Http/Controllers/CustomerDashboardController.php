@@ -17,6 +17,8 @@ class CustomerDashboardController extends Controller
         /** @var \App\Models\Customer $customer */
         $customer = auth()->guard('customer')->user();
 
+        $selectedDate = $request->date ?? now()->format('Y-m-d');
+
         $upcomingReservations = $customer->reservations()
             ->with(['employee.user', 'branch', 'services'])
             ->whereIn('status', ['pending', 'arrived'])
@@ -31,39 +33,41 @@ class CustomerDashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Booking Data
-        $selectedDate = $request->input('date', now()->format('Y-m-d'));
-        $dateObj = Carbon::parse($selectedDate);
+        $branches = Branch::all();
 
-        // Fetch overlapping reservations for the day globally across all capsters (Basic setup)
-        $reservationsOnDate = Reservation::whereDate('reservation_time', $selectedDate)
-            ->whereIn('status', ['pending', 'arrived'])
-            ->get();
+        $availableDays = [];
 
-        // Generate Time Slots from 09:00 to 21:00 (30 mins interval)
+        for ($i = 0; $i < 7; $i++) {
+            $date = Carbon::now()->addDays($i);
+
+            $availableDays[] = [
+                'date' => $date->format('Y-m-d'),
+                'dayName' => $date->translatedFormat('D'),
+                'shortDate' => $date->format('d')
+            ];
+        }
+
         $slots = [];
-        $startTime = $dateObj->copy()->setTime(9, 0, 0);
-        $endTime = $dateObj->copy()->setTime(21, 0, 0);
 
-        while ($startTime <= $endTime) {
-            $timeString = $startTime->format('H:i');
+        $start = Carbon::parse($selectedDate . ' 08:00');
+        $end = Carbon::parse($selectedDate . ' 21:00');
 
-            // Check if this slot is already booked
-            // (Note: For a more advanced system, we'd check per capster, but for now we check globally or simply define a simple overlap)
-            $isBooked = $reservationsOnDate->contains(function ($res) use ($startTime) {
-                return $res->reservation_time->format('H:i') === $startTime->format('H:i');
-            });
+        while ($start < $end) {
 
-            // Make past slots today unavailable
-            $isPast = $selectedDate === now()->format('Y-m-d') && $startTime->isPast();
+            $datetime = $start->format('Y-m-d H:i:s');
+
+            // cek apakah slot sudah dibooking
+            $exists = Reservation::where('reservation_time', $datetime)
+                ->whereIn('status', ['pending','arrived'])
+                ->exists();
 
             $slots[] = [
-                'time' => $timeString,
-                'available' => !$isBooked && !$isPast,
-                'datetime' => $startTime->format('Y-m-d H:i:s')
+                'time' => $start->format('H:i'),
+                'datetime' => $datetime,
+                'available' => !$exists
             ];
 
-            $startTime->addMinutes(30);
+            $start->addMinutes(30);
         }
 
         $services = Service::where('is_active', true)->get();
@@ -71,26 +75,15 @@ class CustomerDashboardController extends Controller
         $capsters = Employee::with('user')->where('is_active', true)->get();
         $branches = Branch::all();
 
-        // Generate 7 days for the date picker
-        $availableDays = [];
-        for ($i = 0; $i < 7; $i++) {
-            $day = now()->addDays($i);
-            $availableDays[] = [
-                'date' => $day->format('Y-m-d'),
-                'dayName' => $i === 0 ? 'Hari Ini' : ($i === 1 ? 'Besok' : $day->translatedFormat('l')),
-                'shortDate' => $day->format('d/m'),
-            ];
-        }
-
         return view('dashboard', compact(
             'upcomingReservations',
             'recentHistory',
-            'slots',
             'services',
             'capsters',
             'branches',
+            'availableDays',
             'selectedDate',
-            'availableDays'
+            'slots',
         ));
     }
 

@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 #[Layout('layouts.kasir')]
 class PosKasir extends Component
@@ -45,7 +46,13 @@ class PosKasir extends Component
     #[Computed]
     public function products()
     {
-        $branchId = auth()->user()->employee?->branch_id ?? auth()->user()->branches->first()?->id;
+        /** @var \App\Models\User|null $user */
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user) {
+            return collect();
+        }
+
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
 
         return Product::where('is_active', true)
             ->where('branch_id', $branchId)
@@ -189,11 +196,17 @@ class PosKasir extends Component
             return;
         }
 
-        $user = auth()->user();
+        /** @var \App\Models\User|null $user */
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user) {
+            $this->addError('general', 'User tidak terautentikasi.');
+            return;
+        }
+
         $employee = $user->employee;
 
         // Dapatkan branch_id: prioritas dari relasi employee -> branches pivot
-        $branchId = $employee?->branch_id ?? $user->branches->first()?->id;
+        $branchId = $employee?->branch_id ?? $user->branches()->first()?->id;
 
         if (!$branchId) {
             $this->addError('general', 'Akses cabang tidak ditemukan untuk akun ini.');
@@ -258,7 +271,6 @@ class PosKasir extends Component
 
             // Peringatkan Alpine/Browser untuk membuka modal
             $this->dispatch('transaction-completed');
-
         } catch (\Exception $e) {
             DB::rollBack();
             $this->addError('general', 'Gagal memproses transaksi: ' . $e->getMessage());
