@@ -39,16 +39,6 @@ class CreateEmployee extends CreateRecord
 
     protected function assignRoleToUser(User $user, string $position): void
     {
-        // Map position to role name
-        // position keys: barber, cashier, manager
-        // role names: customer (default?), cashier, admin (for manager?), super-admin
-
-        // Let's assume:
-        // manager -> admin
-        // cashier -> cashier
-        // barber -> employee (if role exists) or just no specific administrative role?
-        // creating 'employee' role might be good later, for now let's map what we have.
-
         $roleMapping = [
             'manager' => 'admin',
             'cashier' => 'cashier',
