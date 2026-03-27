@@ -8,10 +8,6 @@ use Livewire\Features\SupportRedirects\Redirector;
 
 class LoginResponse implements LoginResponseContract
 {
-    public function __construct()
-    {
-    }
-
     public function toResponse($request): RedirectResponse|Redirector
     {
         /** @var \App\Models\User $user */

@@ -52,11 +52,12 @@ class CreateEmployee extends CreateRecord
         $roleMapping = [
             'manager' => 'admin',
             'cashier' => 'cashier',
-            'barber' => 'customer', // Temporary fallback, or maybe create 'barber' role later
         ];
 
         if (isset($roleMapping[$position])) {
             $user->syncRoles($roleMapping[$position]);
+        } else {
+            $user->syncRoles([]);
         }
     }
 
