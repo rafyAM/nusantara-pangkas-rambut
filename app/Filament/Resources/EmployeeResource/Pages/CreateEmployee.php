@@ -14,22 +14,17 @@ class CreateEmployee extends CreateRecord
     protected static ?string $title = 'Tambah Karyawan';
 
     protected function handleRecordCreation(array $data): Model
-    {
-        // 1. Create or Find User
-        // Use email to link if exists, otherwise create new
+    { 
         $user = User::firstOrCreate(
             ['email' => $data['email']],
             [
                 'name' => $data['name'],
-                'password' => $data['password'], // Password already hashed in resource dehydrate
+                'password' => $data['password'], 
             ]
         );
 
-        // 2. Assign Role based on Position
         $this->assignRoleToUser($user, $data['position']);
 
-        // 3. Create Employee linked to User
-        // Remove password from data as it's not in employees table
         unset($data['password']);
 
         $data['user_id'] = $user->id;
