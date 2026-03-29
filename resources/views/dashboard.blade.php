@@ -41,19 +41,30 @@
             </div>
             @endif
 
-            <!-- DATE PICKER -->
+            <!-- BRANCH & DATE PICKER -->
             <div class="mb-10">
-                <h2 class="text-lg font-semibold text-white mb-4 flex items-center">
-                    <span class="w-1 h-5 bg-yellow-500 rounded-full"></span>
-                    Pilih Jadwal
-                </h2>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <h2 class="text-lg font-semibold text-white flex items-center">
+                        <span class="w-1 h-5 bg-yellow-500 rounded-full mr-2"></span>
+                        Pilih Jadwal & Cabang
+                    </h2>
+
+                    <form method="GET" action="{{ route('dashboard') }}" id="branchForm" class="w-full sm:w-64">
+                        <input type="hidden" name="date" value="{{ $selectedDate }}">
+                        <select name="branch_id" onchange="document.getElementById('branchForm').submit()" class="w-full bg-gray-800 text-white rounded-xl border border-gray-700 px-4 py-2 focus:ring-yellow-500">
+                            @foreach($branches as $branch)
+                                <option value="{{ $branch->id }}" {{ $selectedBranchId == $branch->id ? 'selected' : '' }}>Cabang: {{ $branch->name }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
                 <div class="relative">
                     <div class="absolute left-0 top-0 bottom-3 w-8 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none"></div>
                     <div class="absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-zinc-900 to-transparent z-10 pointer-events-none"></div>
 
                     <div class="flex gap-2.5 overflow-x-auto pb-4 px-8 scrollbar-hide scroll-smooth snap-x snap-mandatory">
                         @foreach($availableDays as $day)
-                        <a href="{{ route('dashboard', ['date' => $day['date']]) }}"
+                        <a href="{{ route('dashboard', ['date' => $day['date'], 'branch_id' => $selectedBranchId]) }}"
                             class="group relative min-w-[76px] h-[84px] rounded-2xl flex flex-col items-center justify-center gap-2 px-2 flex-shrink-0 snap-center transition-all duration-200
                         {{ $selectedDate === $day['date']
                             ? 'bg-yellow-500 text-white shadow-md shadow-yellow-500/30 scale-[1.05]'
@@ -156,7 +167,7 @@
                                 </span>
                             </p>
                         </div>
-                        <a href="{{ route('dashboard',['date'=>now()->format('Y-m-d')]) }}" class="text-yellow-400 text-sm font-semibold hover:underline">
+                        <a href="{{ route('dashboard',['date'=>now()->format('Y-m-d'), 'branch_id' => $history->branch_id]) }}" class="text-yellow-400 text-sm font-semibold hover:underline">
                             Rebook
                         </a>
                     </div>
@@ -209,12 +220,9 @@
                         <div class="space-y-4">
                             <!-- Cabang -->
                             <div>
-                                <label class="block text-sm text-gray-300 mb-1">Pilih Cabang</label>
-                                <select name="branch_id" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500">
-                                    @foreach($branches as $branch)
-                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
-                                    @endforeach
-                                </select>
+                                <label class="block text-sm text-gray-300 mb-1">Cabang</label>
+                                <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
+                                <input type="text" disabled value="{{ $branches->where('id', $selectedBranchId)->first()->name ?? '' }}" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-400 cursor-not-allowed">
                             </div>
 
                             <!-- Service -->
@@ -269,5 +277,76 @@
                 scrollbar-width: none;
             }
         </style>
+
+        <script>
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                    if ('Notification' in window) {
+                        Notification.requestPermission().then(function(permission) {
+                            if (permission === 'granted') {
+                                initPush();
+                            }
+                        });
+                    }
+                }).catch(function(err) {
+                    console.log('Service worker registration failed:', err);
+                });
+            }
+
+            function initPush() {
+                if (!('PushManager' in window)) return;
+                
+                navigator.serviceWorker.ready.then(function(registration) {
+                    registration.pushManager.getSubscription().then(function(subscription) {
+                        if (!subscription) {
+                            subscribeUser();
+                        }
+                    });
+                });
+            }
+
+            function subscribeUser() {
+                navigator.serviceWorker.ready.then(function(registration) {
+                    const vapidPublicKey = "{{ config('webpush.vapid.public_key') }}";
+                    if (!vapidPublicKey) return; // Wait until keys are generated
+                    
+                    const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
+                    registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: applicationServerKey
+                    }).then(function(subscription) {
+                        // Send subscription to backend
+                        fetch('{{ route("push.subscribe") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify(subscription)
+                        });
+                    }).catch(function(err) {
+                        console.log('Failed to subscribe the user: ', err);
+                    });
+                });
+            }
+
+            function urlB64ToUint8Array(base64String) {
+                if (!base64String) return new Uint8Array(0);
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding)
+                    .replace(/\-/g, '+')
+                    .replace(/_/g, '/');
+
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            }
+        </script>
     </div>
 </x-app-layout>

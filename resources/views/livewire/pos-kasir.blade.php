@@ -69,9 +69,70 @@
                         </div>
                     @endforelse
                 </div>
+            @elseif($activeTab === 'reservation')
+                <div class="space-y-4">
+                    @forelse($reservationsData as $reservation)
+                        <div wire:key="reservation-{{ $reservation->id }}" class="bg-white border border-gray-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between hover:border-indigo-500 hover:shadow-sm transition">
+                            <div class="flex-1 mb-4 md:mb-0">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <h3 class="font-bold text-gray-900 text-lg">{{ $reservation->customer?->name ?? 'Pelanggan Umum' }}</h3>
+                                    <span class="px-2 py-0.5 text-xs font-semibold rounded 
+                                        {{ $reservation->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                          ($reservation->status === 'arrived' ? 'bg-teal-100 text-teal-800' :
+                                          ($reservation->status === 'confirmed' ? 'bg-blue-100 text-blue-800' : 
+                                          ($reservation->status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'))) }}">
+                                        {{ ucfirst($reservation->status) }}
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        {{ $reservation->reservation_time->translatedFormat('l, d F Y') }}
+                                    </div>
+                                    <div class="flex items-center font-medium text-indigo-600">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        {{ $reservation->reservation_time->format('H:i') }} WIB
+                                    </div>
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                        Barber: <span class="font-medium ml-1 text-gray-800">{{ $reservation->employee?->name ?? 'Bebas' }}</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                        {{ $reservation->customer?->phone ?? '-' }}
+                                    </div>
+                                </div>
+                                @if($reservation->services && $reservation->services->count() > 0)
+                                    <div class="mt-2 text-xs text-gray-500">
+                                        <strong>Layanan:</strong> {{ $reservation->services->pluck('name')->join(', ') }}
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            <div class="md:ml-4 flex-shrink-0 flex flex-col gap-2">
+                                @if($reservation->status === 'pending')
+                                <button wire:click="approveReservation({{ $reservation->id }})" class="w-full md:w-auto bg-green-500 hover:bg-green-600 text-indigo-600 font-medium py-2 px-4 rounded transition flex items-center justify-center border border-green-600 shadow-sm">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    Tandai Hadir
+                                </button>
+                                @endif
+                                <button wire:click="loadReservationToCart({{ $reservation->id }})" class="w-full md:w-auto {{ $reservation->status === 'pending' ? 'bg-white text-indigo-600' : 'bg-indigo-50 text-indigo-700' }} hover:bg-indigo-100 font-medium py-2 px-4 rounded transition flex items-center justify-center border border-indigo-200">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    Proses Ke Kasir
+                                </button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-full h-64 flex flex-col items-center justify-center text-gray-500 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                            <svg class="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <p class="text-xl font-medium text-gray-900">Tidak ada reservasi ditemukan</p>
+                            <p class="text-sm mt-1">Belum ada pelanggan yang membuat reservasi untuk hari ini ke depan.</p>
+                        </div>
+                    @endforelse
+                </div>
             @else
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    @forelse($this->products as $product)
+                    @forelse($productsData as $product)
                         @php
                             $isDisabled = $product->stock <= 0;
                         @endphp
