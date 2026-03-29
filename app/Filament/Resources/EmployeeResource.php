@@ -43,11 +43,24 @@ class EmployeeResource extends Resource
                             ->maxLength(255),
                         Forms\Components\Select::make('branch_id')
                             ->label('Cabang')
-                            ->options(fn () => \App\Models\Branch::pluck('name', 'id')->toArray())
+                            ->options(function () {
+                                $user = auth()->user();
+                                if ($user->hasRole('super_admin')) {
+                                    return \App\Models\Branch::pluck('name', 'id')->toArray();
+                                }
+                                return $user->branches()->pluck('name', 'branches.id')->toArray();
+                            })
+                            ->default(fn () => auth()->user()->hasRole('super_admin')
+                                ? null
+                                : auth()->user()->currentBranch()?->id
+                            )
+                            ->disabled(fn () => ! auth()->user()->hasRole('super_admin'))
+                            ->dehydrated()
                             ->required(),
                         Forms\Components\TextInput::make('phone')
                             ->label('No. Telepon')
                             ->tel()
+                            ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.0-9]*$/')
                             ->maxLength(20),
                         Forms\Components\TextInput::make('email')
                             ->label('Email')

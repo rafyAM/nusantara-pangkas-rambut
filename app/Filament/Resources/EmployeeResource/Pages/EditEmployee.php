@@ -70,11 +70,12 @@ class EditEmployee extends EditRecord
         $roleMapping = [
             'manager' => 'admin',
             'cashier' => 'cashier',
-            'barber' => 'customer',
         ];
 
         if (isset($roleMapping[$position])) {
             $user->syncRoles($roleMapping[$position]);
+        } else {
+            $user->syncRoles([]);
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\BranchScope;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
@@ -11,16 +12,19 @@ class Product extends Model
         'name',
         'price',
         'stock',
-        // 'commission_rate',
         'is_active',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
-        // 'commission_rate' => 'decimal:2',
-        'stock' => 'integer',
+        'price'     => 'decimal:2',
+        'stock'     => 'integer',
         'is_active' => 'boolean',
     ];
+    
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new BranchScope());
+    }
 
     public function branch()
     {

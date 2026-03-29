@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\BranchScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,11 +25,13 @@ class Transaction extends Model
 
     protected $casts = [
         'transaction_date' => 'datetime',
-        'total_amount' => 'decimal:2',
+        'total_amount'     => 'decimal:2',
     ];
 
     protected static function booted(): void
     {
+        static::addGlobalScope(new BranchScope());
+
         static::creating(function (Transaction $transaction) {
             if (empty($transaction->invoice_number)) {
                 $transaction->invoice_number = self::generateInvoiceNumber();
@@ -39,8 +42,10 @@ class Transaction extends Model
     public static function generateInvoiceNumber(): string
     {
         $prefix = 'INV';
-        $date = now()->format('Ymd');
-        $lastTransaction = self::whereDate('created_at', today())
+        $date   = now()->format('Ymd');
+
+        $lastTransaction = self::withoutGlobalScope(BranchScope::class)
+            ->whereDate('created_at', today())
             ->orderByDesc('id')
             ->first();
 

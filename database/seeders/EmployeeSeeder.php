@@ -27,9 +27,5 @@ class EmployeeSeeder extends Seeder
         if ($branchFatmawati && $branchFatmawati->employees()->count() === 0) {
             Employee::factory()->count(2)->create(['branch_id' => $branchFatmawati->id]);
         }
-
-        if ($branchNgaliyan && $branchNgaliyan->employees()->count() === 0) {
-            Employee::factory()->count(2)->create(['branch_id' => $branchNgaliyan->id]);
-        }
     }
 }

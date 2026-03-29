@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Traits\HasRoles;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -29,7 +29,7 @@ class User extends Authenticatable implements FilamentUser
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
@@ -43,8 +43,38 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasOne(Employee::class);
     }
 
+    public function currentBranch(): ?Branch
+    {
+        return $this->branches()->first();
+    }
+
+    public function branchIds(): array
+    {
+        return Cache::remember(
+            "user_{$this->id}_branch_ids",
+            now()->addHours(6),
+            fn () => $this->branches()->pluck('branches.id')->toArray()
+        );
+    }
+
+    public function getPermissionsViaRoles(): \Illuminate\Support\Collection
+    {
+        $cacheKey = "user_{$this->id}_permissions";
+
+        return Cache::remember($cacheKey, now()->addHours(6), function () {
+            return parent::getPermissionsViaRoles();
+        });
+    }
+
+    public function clearPermissionCache(): void
+    {
+        Cache::forget("user_{$this->id}_permissions");
+        Cache::forget("user_{$this->id}_branch_ids");
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
-        return true;
+        return $this->hasAnyRole(['super_admin', 'admin', 'cashier']);
     }
 }
