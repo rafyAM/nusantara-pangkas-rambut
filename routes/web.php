@@ -17,6 +17,10 @@ Route::post('/reservations', [CustomerDashboardController::class, 'store'])
     ->middleware(['auth:customer', 'verified'])
     ->name('reservations.store');
 
+Route::post('/push/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'subscribe'])
+    ->middleware(['auth:customer'])
+    ->name('push.subscribe');
+
 Route::middleware(['auth', 'role:cashier'])->group(function () {
     Route::get('/kasir/pos', PosKasir::class)->name('kasir.pos');
 });

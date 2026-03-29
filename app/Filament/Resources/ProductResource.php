@@ -11,6 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
+
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
@@ -26,7 +27,11 @@ class ProductResource extends Resource
                 Forms\Components\Select::make('branch_id')
                     ->relationship('branch', 'name')
                     ->searchable()
-                    ->hidden(fn() => auth()->user()->hasRole('cashier'))
+                    ->hidden(function () {
+                        /** @var \App\Models\User $user */
+                        $user = auth()->user();
+                        return $user->hasRole('cashier');
+                    })
                     ->required(),
                 Forms\Components\TextInput::make('name')
                     ->required()
@@ -94,8 +99,11 @@ class ProductResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (!auth()->user()->hasRole('super-admin')) {
-            $query->whereIn('branch_id', auth()->user()->branches->pluck('id'));
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        if (!$user->hasRole('super_admin')) {
+            $query->whereIn('branch_id', $user->branches->pluck('id'));
         }
 
         return $query;

@@ -18,6 +18,8 @@ class CustomerDashboardController extends Controller
         $customer = auth()->guard('customer')->user();
 
         $selectedDate = $request->date ?? now()->format('Y-m-d');
+        $branches = Branch::all();
+        $selectedBranchId = $request->branch_id ?? ($branches->first()->id ?? null);
 
         $upcomingReservations = $customer->reservations()
             ->with(['employee.user', 'branch', 'services'])
@@ -32,8 +34,6 @@ class CustomerDashboardController extends Controller
             ->orderBy('reservation_time', 'desc')
             ->take(5)
             ->get();
-
-        $branches = Branch::all();
 
         $availableDays = [];
 
@@ -56,24 +56,26 @@ class CustomerDashboardController extends Controller
 
             $datetime = $start->format('Y-m-d H:i:s');
 
-            // cek apakah slot sudah dibooking
+            // Cek apakah slot waktu sudah lewat (realtime)
+            $isPast = $start->isPast();
+
+            // cek apakah slot sudah dibooking di cabang spesifik
             $exists = Reservation::where('reservation_time', $datetime)
+                ->where('branch_id', $selectedBranchId)
                 ->whereIn('status', ['pending','arrived'])
                 ->exists();
 
             $slots[] = [
                 'time' => $start->format('H:i'),
                 'datetime' => $datetime,
-                'available' => !$exists
+                'available' => !$exists && !$isPast
             ];
 
             $start->addMinutes(30);
         }
 
         $services = Service::where('is_active', true)->get();
-        // Load capsters, mapping to user name
-        $capsters = Employee::with('user')->where('is_active', true)->get();
-        $branches = Branch::all();
+        $capsters = Employee::with('user')->where('is_active', true)->where('branch_id', $selectedBranchId)->get();
 
         return view('dashboard', compact(
             'upcomingReservations',
@@ -83,6 +85,7 @@ class CustomerDashboardController extends Controller
             'branches',
             'availableDays',
             'selectedDate',
+            'selectedBranchId',
             'slots',
         ));
     }
@@ -91,13 +94,23 @@ class CustomerDashboardController extends Controller
     {
         $request->validate([
             'reservation_time' => 'required|date',
-            'service_id' => 'required|exists:services,id',
             'branch_id' => 'required|exists:branches,id',
+            'service_id' => 'nullable|exists:services,id',
             'employee_id' => 'nullable|exists:employees,id',
         ]);
 
         /** @var \App\Models\Customer $customer */
         $customer = auth()->guard('customer')->user();
+
+        // Validasi ekstra menghindari bentrok jam (Race condition / Post manipulation)
+        $exists = Reservation::where('reservation_time', $request->reservation_time)
+            ->where('branch_id', $request->branch_id)
+            ->whereIn('status', ['pending', 'arrived'])
+            ->exists();
+
+        if ($exists) {
+            return back()->withErrors(['error' => 'Mohon maaf, waktu ini baru saja dibooking oleh pelanggan lain di cabang yang sama. Silakan pilih waktu lain.']);
+        }
 
         $reservation = Reservation::create([
             'customer_id' => $customer->id,
@@ -107,7 +120,9 @@ class CustomerDashboardController extends Controller
             'status' => 'pending',
         ]);
 
-        $reservation->services()->attach($request->service_id);
+        if ($request->service_id) {
+            $reservation->services()->attach($request->service_id);
+        }
 
         return redirect()->route('dashboard')->with('success', 'Booking berhasil dibuat!');
     }
