@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Livewire\PosKasir;
+use App\Http\Controllers\PushSubscriptionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -17,7 +18,7 @@ Route::post('/reservations', [CustomerDashboardController::class, 'store'])
     ->middleware(['auth:customer', 'verified'])
     ->name('reservations.store');
 
-Route::post('/push/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'subscribe'])
+Route::post('/push/subscribe', [PushSubscriptionController::class, 'subscribe'])
     ->middleware(['auth:customer'])
     ->name('push.subscribe');
 
