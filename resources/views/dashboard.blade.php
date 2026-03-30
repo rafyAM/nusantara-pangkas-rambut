@@ -53,7 +53,7 @@
                         <input type="hidden" name="date" value="{{ $selectedDate }}">
                         <select name="branch_id" onchange="document.getElementById('branchForm').submit()" class="w-full bg-gray-800 text-white rounded-xl border border-gray-700 px-4 py-2 focus:ring-yellow-500">
                             @foreach($branches as $branch)
-                                <option value="{{ $branch->id }}" {{ $selectedBranchId == $branch->id ? 'selected' : '' }}>Cabang: {{ $branch->name }}</option>
+                            <option value="{{ $branch->id }}" {{ $selectedBranchId == $branch->id ? 'selected' : '' }}>Cabang: {{ $branch->name }}</option>
                             @endforeach
                         </select>
                     </form>
@@ -296,7 +296,7 @@
 
             function initPush() {
                 if (!('PushManager' in window)) return;
-                
+
                 navigator.serviceWorker.ready.then(function(registration) {
                     registration.pushManager.getSubscription().then(function(subscription) {
                         if (!subscription) {
@@ -310,7 +310,7 @@
                 navigator.serviceWorker.ready.then(function(registration) {
                     const vapidPublicKey = "{{ config('webpush.vapid.public_key') }}";
                     if (!vapidPublicKey) return; // Wait until keys are generated
-                    
+
                     const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
                     registration.pushManager.subscribe({
                         userVisibleOnly: true,

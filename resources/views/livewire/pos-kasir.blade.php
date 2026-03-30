@@ -111,10 +111,16 @@
                             
                             <div class="md:ml-4 flex-shrink-0 flex flex-col gap-2">
                                 @if($reservation->status === 'pending')
-                                <button wire:click="approveReservation({{ $reservation->id }})" class="w-full md:w-auto bg-green-500 hover:bg-green-600 text-indigo-600 font-medium py-2 px-4 rounded transition flex items-center justify-center border border-green-600 shadow-sm">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                    Tandai Hadir
-                                </button>
+                                <div class="flex gap-2 w-full">
+                                <button wire:click="approveReservation({{ $reservation->id }})" class="flex-1 md:w-auto bg-white text-green-600 hover:bg-green-100 font-medium py-2 px-4 rounded transition flex items-center justify-center border border-green-200">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        Hadir
+                                    </button>
+                                    <button wire:click="cancelReservation({{ $reservation->id }})" wire:confirm="Yakin ingin membatalkan/menghanguskan secara manual?" class="flex-1 md:w-auto bg-white text-red-600 hover:bg-red-100 font-medium py-2 px-4 rounded transition flex items-center justify-center border border-red-200">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        Batal/Hangus
+                                    </button>
+                                </div>
                                 @endif
                                 <button wire:click="loadReservationToCart({{ $reservation->id }})" class="w-full md:w-auto {{ $reservation->status === 'pending' ? 'bg-white text-indigo-600' : 'bg-indigo-50 text-indigo-700' }} hover:bg-indigo-100 font-medium py-2 px-4 rounded transition flex items-center justify-center border border-indigo-200">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
