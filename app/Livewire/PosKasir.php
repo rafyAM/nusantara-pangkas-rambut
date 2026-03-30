@@ -162,6 +162,17 @@ class PosKasir extends Component
         }
     }
 
+    public function cancelReservation($id)
+    {
+        $reservation = \App\Models\Reservation::with('customer')->find($id);
+        if ($reservation && $reservation->status === 'pending') {
+            $reservation->update(['status' => 'cancelled']);
+            if ($reservation->customer) {
+                $reservation->customer->notify(new \App\Notifications\ReservationCancelled($reservation));
+            }
+        }
+    }
+
     public function loadReservationToCart($reservationId)
     {
         $reservation = \App\Models\Reservation::with(['customer', 'services'])->find($reservationId);

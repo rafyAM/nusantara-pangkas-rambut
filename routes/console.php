@@ -13,12 +13,23 @@ Artisan::command('inspire', function () {
 // Auto cancel reservasi jika telat >30 menit (dari jam booking belum di-approve kasir)
 Schedule::call(function () {
     $threshold = Carbon::now()->subMinutes(30);
-    $expired = Reservation::where('status', 'pending')
-        ->where('reservation_time', '<=', $threshold)
-        ->update(['status' => 'cancelled']);
     
-    if ($expired > 0) {
-        info("Auto-cancelled {$expired} reservations due to 30 mins late.");
+    $expiredReservations = Reservation::with('customer')
+        ->where('status', 'pending')
+        ->where('reservation_time', '<=', $threshold)
+        ->get();
+        
+    $count = 0;
+    foreach ($expiredReservations as $res) {
+        $res->update(['status' => 'cancelled']);
+        if ($res->customer) {
+            $res->customer->notify(new \App\Notifications\ReservationCancelled($res));
+            $count++;
+        }
+    }
+    
+    if ($count > 0) {
+        info("Auto-cancelled {$count} reservations due to 30 mins late.");
     }
 })->everyMinute();
 
