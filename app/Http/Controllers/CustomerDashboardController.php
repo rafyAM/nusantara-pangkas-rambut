@@ -49,8 +49,9 @@ class CustomerDashboardController extends Controller
 
         $slots = [];
 
+        // jam buka dan tutup barbershop
         $start = Carbon::parse($selectedDate . ' 08:00');
-        $end = Carbon::parse($selectedDate . ' 21:00');
+        $end = Carbon::parse($selectedDate . ' 21:30');
 
         while ($start < $end) {
 
@@ -62,7 +63,7 @@ class CustomerDashboardController extends Controller
             // cek apakah slot sudah dibooking di cabang spesifik
             $exists = Reservation::where('reservation_time', $datetime)
                 ->where('branch_id', $selectedBranchId)
-                ->whereIn('status', ['pending','arrived'])
+                ->whereIn('status', ['pending', 'arrived'])
                 ->exists();
 
             $slots[] = [
@@ -71,7 +72,7 @@ class CustomerDashboardController extends Controller
                 'available' => !$exists && !$isPast
             ];
 
-            $start->addMinutes(30);
+            $start->addMinutes(30); // jarak waktu antar slot
         }
 
         $services = Service::where('is_active', true)->get();

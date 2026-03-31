@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Auth;
 
 class EmployeeResource extends Resource
 {
@@ -44,17 +45,23 @@ class EmployeeResource extends Resource
                         Forms\Components\Select::make('branch_id')
                             ->label('Cabang')
                             ->options(function () {
-                                $user = auth()->user();
+                                /** @var \App\Models\User $user */
+                                $user = Auth::user();
                                 if ($user->hasRole('super_admin')) {
                                     return \App\Models\Branch::pluck('name', 'id')->toArray();
                                 }
                                 return $user->branches()->pluck('name', 'branches.id')->toArray();
                             })
-                            ->default(fn () => auth()->user()->hasRole('super_admin')
-                                ? null
-                                : auth()->user()->currentBranch()?->id
-                            )
-                            ->disabled(fn () => ! auth()->user()->hasRole('super_admin'))
+                            ->default(function () {
+                                /** @var \App\Models\User $user */
+                                $user = Auth::user();
+                                return $user->hasRole('super_admin') ? null : $user->currentBranch()?->id;
+                            })
+                            ->disabled(function () {
+                                /** @var \App\Models\User $user */
+                                $user = Auth::user();
+                                return ! $user->hasRole('super_admin');
+                            })
                             ->dehydrated()
                             ->required(),
                         Forms\Components\TextInput::make('phone')

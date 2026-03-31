@@ -51,9 +51,16 @@
 
                     <form method="GET" action="{{ route('dashboard') }}" id="branchForm" class="w-full sm:w-64">
                         <input type="hidden" name="date" value="{{ $selectedDate }}">
-                        <select name="branch_id" onchange="document.getElementById('branchForm').submit()" class="w-full bg-gray-800 text-white rounded-xl border border-gray-700 px-4 py-2 focus:ring-yellow-500">
+                        <select name="branch_id" onchange="document.getElementById('branchForm').submit()" 
+                            class="w-full bg-gray-800 text-white rounded-xl border border-gray-700 
+                                px-3 py-2 text-sm md:px-4 md:py-2.5 md:text-base 
+                                hover:border-gray-500 hover:bg-gray-750 
+                                focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 
+                                transition-all duration-200 ease-in-out cursor-pointer shadow-sm appearance-none">
                             @foreach($branches as $branch)
-                            <option value="{{ $branch->id }}" {{ $selectedBranchId == $branch->id ? 'selected' : '' }}>Cabang: {{ $branch->name }}</option>
+                                <option value="{{ $branch->id }}" {{ $selectedBranchId == $branch->id ? 'selected' : '' }}>
+                                    Cabang: {{ $branch->name }}
+                                </option>
                             @endforeach
                         </select>
                     </form>
@@ -224,7 +231,7 @@
                                 <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
                                 <input type="text" disabled value="{{ $branches->where('id', $selectedBranchId)->first()->name ?? '' }}" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-400 cursor-not-allowed">
                             </div>
-                            
+
                             <!-- Capster -->
                             <div>
                                 <label class="block text-sm text-gray-300 mb-1">Pilih Kapster (Opsional)</label>
