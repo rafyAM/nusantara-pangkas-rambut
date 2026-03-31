@@ -37,9 +37,19 @@ class BranchScope implements Scope
             return;
         }
 
-        $branchIds = $user->branches()->pluck('branches.id');
+        $branchIds = $user->branches()->pluck('branches.id')->toArray();
 
-        if ($branchIds->isEmpty()) {
+        // nambah juga dari relasi Employee jika memiliki
+        // pake DB::table buat mencegah Infinite Loop (karena model Employee juga pake BranchScope)
+        $employee = \Illuminate\Support\Facades\DB::table('employees')
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($employee && $employee->branch_id) {
+            $branchIds[] = $employee->branch_id;
+        }
+
+        if (empty($branchIds)) {
             $builder->whereRaw('1 = 0');
             return;
         }
