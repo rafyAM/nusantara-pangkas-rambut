@@ -224,20 +224,7 @@
                                 <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
                                 <input type="text" disabled value="{{ $branches->where('id', $selectedBranchId)->first()->name ?? '' }}" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-gray-400 cursor-not-allowed">
                             </div>
-
-                            <!-- Service -->
-                            <!-- <div>
-                                <label class="block text-sm text-gray-300 mb-1">Pilih Layanan</label>
-                                <select name="service_id" required class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500">
-                                    <option value="">-- Pilih Layanan --</option>
-                                    @foreach($services as $service)
-                                        <option value="{{ $service->id }}">
-                                            {{ $service->name }} - Rp {{ number_format($service->price,0,',','.') }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div> -->
-
+                            
                             <!-- Capster -->
                             <div>
                                 <label class="block text-sm text-gray-300 mb-1">Pilih Kapster (Opsional)</label>
@@ -301,6 +288,10 @@
                     registration.pushManager.getSubscription().then(function(subscription) {
                         if (!subscription) {
                             subscribeUser();
+                        } else {
+                            // Sinkronkan selalu ke backend setiap kali dashboard dibuka
+                            // Ini pencegahan jika kamu mereset database (migrate:fresh) tapi browser belum direset
+                            sendSubscriptionToBackend(subscription);
                         }
                     });
                 });
@@ -309,27 +300,30 @@
             function subscribeUser() {
                 navigator.serviceWorker.ready.then(function(registration) {
                     const vapidPublicKey = "{{ config('webpush.vapid.public_key') }}";
-                    if (!vapidPublicKey) return; // Wait until keys are generated
+                    if (!vapidPublicKey) return; 
 
                     const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
                     registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: applicationServerKey
                     }).then(function(subscription) {
-                        // Send subscription to backend
-                        fetch('{{ route("push.subscribe") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify(subscription)
-                        });
+                        sendSubscriptionToBackend(subscription);
                     }).catch(function(err) {
                         console.log('Failed to subscribe the user: ', err);
                     });
                 });
+            }
+
+            function sendSubscriptionToBackend(subscription) {
+                 fetch('{{ route("push.subscribe") }}', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Accept': 'application/json',
+                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                     },
+                     body: JSON.stringify(subscription)
+                 });
             }
 
             function urlB64ToUint8Array(base64String) {
