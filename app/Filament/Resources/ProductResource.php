@@ -86,7 +86,7 @@ class ProductResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageProducts::route('/'),
+            'index' => Pages\ListProducts::route('/'),
         ];
     }
 
