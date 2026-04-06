@@ -17,7 +17,7 @@ Route::post('/reservations', [CustomerDashboardController::class, 'store'])
     ->middleware(['auth:customer', 'verified'])
     ->name('reservations.store');
 
-Route::middleware(['auth', 'role:cashier'])->group(function () {
+Route::middleware(['auth', 'permission:create_transaction'])->group(function () {
     Route::get('/kasir/pos', PosKasir::class)->name('kasir.pos');
 });
 

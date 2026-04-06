@@ -57,18 +57,8 @@ class User extends Authenticatable implements FilamentUser
         );
     }
 
-    public function getPermissionsViaRoles(): \Illuminate\Support\Collection
-    {
-        $cacheKey = "user_{$this->id}_permissions";
-
-        return Cache::remember($cacheKey, now()->addHours(6), function () {
-            return parent::getPermissionsViaRoles();
-        });
-    }
-
     public function clearPermissionCache(): void
     {
-        Cache::forget("user_{$this->id}_permissions");
         Cache::forget("user_{$this->id}_branch_ids");
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
     }

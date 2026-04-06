@@ -20,7 +20,7 @@ class BranchScope implements Scope
             return;
         }
 
-        $branchIds = $user->branches()->pluck('branches.id');
+        $branchIds = collect($user->branchIds());
 
         if ($branchIds->isEmpty()) {
             $builder->whereRaw('1 = 0');
