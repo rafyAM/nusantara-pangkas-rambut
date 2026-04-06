@@ -1,0 +1,16 @@
+{
+  "name": "Nusantara Pangkas Rambut",
+  "short_name": "Nusantara",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111827",
+  "description": "Booking service and reservation for Nusantara Pangkas Rambut",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

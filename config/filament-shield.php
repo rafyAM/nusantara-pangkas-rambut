@@ -48,8 +48,9 @@ return [
             'force_delete_any',
         ],
 
-        'page' => 'page',
-        'widget' => 'widget',
+        //must be in array
+        'page' => ['page'],
+        'widget' => ['widget'],
     ],
 
     'entities' => [

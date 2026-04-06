@@ -10,6 +10,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
+
 
 class ProductResource extends Resource
 {
@@ -26,7 +28,11 @@ class ProductResource extends Resource
                 Forms\Components\Select::make('branch_id')
                     ->relationship('branch', 'name')
                     ->searchable()
-                    ->hidden(fn() => auth()->user()->hasRole('cashier'))
+                    ->hidden(function () {
+                        /** @var \App\Models\User $user */
+                        $user = Auth::user();
+                        return $user->hasRole('cashier');
+                    })
                     ->required(),
                 Forms\Components\TextInput::make('name')
                     ->required()
@@ -94,8 +100,11 @@ class ProductResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (!auth()->user()->hasRole('super-admin')) {
-            $query->whereIn('branch_id', auth()->user()->branches->pluck('id'));
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!$user->hasRole('super_admin')) {
+            $query->whereIn('branch_id', $user->branches->pluck('id'));
         }
 
         return $query;

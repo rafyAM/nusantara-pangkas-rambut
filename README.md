@@ -110,6 +110,7 @@ composer install
 ```bash
 cp .env.example .env
 php artisan key:generate
+php artisan webpush:vapid
 ```
 
 #### 4. Konfigurasi Database & Redis
@@ -196,6 +197,7 @@ Perintah ini akan menjalankan secara bersamaan:
 - `php artisan queue:listen` — Queue worker
 - `php artisan pail` — Log viewer (real-time)
 - `npm run dev` — Vite dev server (hot reload)
+- `php artisan schedule:work` — Background scheduler untuk mengeksekusi Pembatalan Reservasi Otomatis & Notifikasi
 
 ### Mode Manual
 
@@ -205,10 +207,13 @@ Jalankan masing-masing di terminal terpisah:
 # Terminal 1 - Web Server
 php artisan serve
 
-# Terminal 2 - Vite Dev Server
+# Terminal 2 - Vite Dev Server (Agar perubahan layout dan animasi CSS bisa muncul)
 npm run dev
 
-# Terminal 3 - Queue Worker (opsional)
+# Terminal 3 - Scheduler (Wajib untuk menjalankan robot Auto-Cancel Reservasi & Notifikasi)
+php artisan schedule:work
+
+# Terminal 4 - Queue Worker (opsional)
 php artisan queue:listen
 ```
 

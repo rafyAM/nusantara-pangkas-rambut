@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 #[Layout('layouts.kasir')]
 class PosKasir extends Component
@@ -23,6 +24,9 @@ class PosKasir extends Component
     public string $customerSearch = '';
     public array $customerSuggestions = [];
     public ?int $selectedCustomerId = null;
+
+    // Track reservasi agar otomatis statusnya menjadi completed saat dibayar
+    public ?int $processedReservationId = null;
 
     public string $discountType = 'nominal';
     public float $discountValue = 0;
@@ -42,15 +46,52 @@ class PosKasir extends Component
             ->get();
     }
 
-    #[Computed]
-    public function products()
+    private function getReservationsList()
     {
-        $branchId = auth()->user()->employee?->branch_id ?? auth()->user()->branches->first()?->id;
+        /** @var \App\Models\User|null $user */
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user) {
+            return collect();
+        }
 
-        return Product::where('is_active', true)
-            ->where('branch_id', $branchId)
-            ->where('name', 'like', '%' . $this->search . '%')
-            ->get();
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
+
+        $query = \App\Models\Reservation::with(['customer', 'employee', 'services'])
+            ->whereIn('status', ['pending', 'arrived'])
+            ->orderBy('reservation_time', 'asc');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        if (!empty($this->search)) {
+            $query->whereHas('customer', function($q) {
+                $q->where('name', 'like', '%' . $this->search . '%')
+                  ->orWhere('phone', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        return $query->get();
+    }
+
+    private function getProductsList()
+    {
+        /** @var \App\Models\User|null $user */
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user) {
+            return collect();
+        }
+
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
+
+        $query = Product::where('is_active', true)
+            ->where('name', 'like', '%' . $this->search . '%');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        return $query->get();
     }
 
     #[Computed]
@@ -111,6 +152,50 @@ class PosKasir extends Component
         $this->selectedCustomerId = null;
         $this->customerName = '';
         $this->customerSearch = '';
+    }
+
+    public function approveReservation($id)
+    {
+        $reservation = \App\Models\Reservation::find($id);
+        if ($reservation && $reservation->status === 'pending') {
+            $reservation->update(['status' => 'arrived']);
+        }
+    }
+
+    public function cancelReservation($id)
+    {
+        $reservation = \App\Models\Reservation::with('customer')->find($id);
+        if ($reservation && $reservation->status === 'pending') {
+            $reservation->update(['status' => 'cancelled']);
+            if ($reservation->customer) {
+                $reservation->customer->notify(new \App\Notifications\ReservationCancelled($reservation));
+            }
+        }
+    }
+
+    public function loadReservationToCart($reservationId)
+    {
+        $reservation = \App\Models\Reservation::with(['customer', 'services'])->find($reservationId);
+        if (!$reservation) {
+            return;
+        }
+
+        // Tandai reservasi ini di memori agar bisa di-finish (completed) jika checkout
+        $this->processedReservationId = $reservation->id;
+
+        $this->cart = [];
+        
+        if ($reservation->customer) {
+            $this->selectCustomer($reservation->customer->id, $reservation->customer->name);
+        }
+
+        if ($reservation->services) {
+            foreach ($reservation->services as $service) {
+                $this->addToCart($service->id, 'service');
+            }
+        }
+
+        $this->activeTab = 'service';
     }
 
     public function addToCart($itemId, $itemType)
@@ -189,15 +274,40 @@ class PosKasir extends Component
             return;
         }
 
-        $user = auth()->user();
+        /** @var \App\Models\User|null $user */
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user) {
+            $this->addError('general', 'User tidak terautentikasi.');
+            return;
+        }
+
         $employee = $user->employee;
 
         // Dapatkan branch_id: prioritas dari relasi employee -> branches pivot
-        $branchId = $employee?->branch_id ?? $user->branches->first()?->id;
+        $branchId = $employee?->branch_id ?? $user->branches()->first()?->id;
 
         if (!$branchId) {
-            $this->addError('general', 'Akses cabang tidak ditemukan untuk akun ini.');
-            return;
+            if ($user->hasRole('super_admin')) {
+                $branchId = \App\Models\Branch::first()?->id;
+            }
+
+            if (!$branchId) {
+                $this->addError('general', 'Akses cabang tidak ditemukan untuk akun ini.');
+                return;
+            }
+        }
+
+        // Pastikan Data Karyawan (employee_id) ada agar tidak melanggar Schema Database yang Not Null
+        $employeeId = $employee?->id;
+        if (!$employeeId) {
+            // Jika akun kasir belum ditautkan ke profil karyawan, pinjam profil karyawan pertama di cabang ini
+            $fallbackEmployee = \App\Models\Employee::where('branch_id', $branchId)->first();
+            $employeeId = $fallbackEmployee?->id;
+            
+            if (!$employeeId) {
+                $this->addError('general', 'Tidak dapat memproses! Cabang ini belum memiliki satupun Data Karyawan/Kapster terdaftar.');
+                return;
+            }
         }
 
         DB::beginTransaction();
@@ -217,7 +327,7 @@ class PosKasir extends Component
                 // invoice_number auto generated via model booted
                 'branch_id' => $branchId,
                 'customer_id' => $this->selectedCustomerId,
-                'employee_id' => $employee?->id, // Kasir
+                'employee_id' => $employeeId, // Kasir or Fallback Employee
                 'transaction_date' => now(),
                 'total_amount' => $this->total(),
                 'payment_method' => $this->paymentMethod,
@@ -246,6 +356,11 @@ class PosKasir extends Component
 
             DB::commit();
 
+            // Otomatis ubah status Reservasinya jadi "Completed" (Selesai/Lunas)
+            if ($this->processedReservationId) {
+                \App\Models\Reservation::where('id', $this->processedReservationId)->update(['status' => 'completed']);
+            }
+
             // Set variables untuk cetak
             $this->completedTransactionId = $transaction->id;
             $this->completedInvoiceNumber = $transaction->fresh()->invoice_number;
@@ -255,10 +370,10 @@ class PosKasir extends Component
             $this->clearCustomer();
             $this->paymentAmount = 0;
             $this->discountValue = 0;
+            $this->processedReservationId = null;
 
             // Peringatkan Alpine/Browser untuk membuka modal
             $this->dispatch('transaction-completed');
-
         } catch (\Exception $e) {
             DB::rollBack();
             $this->addError('general', 'Gagal memproses transaksi: ' . $e->getMessage());
@@ -267,6 +382,9 @@ class PosKasir extends Component
 
     public function render()
     {
-        return view('livewire.pos-kasir');
+        return view('livewire.pos-kasir', [
+            'reservationsData' => $this->getReservationsList(),
+            'productsData' => $this->getProductsList()
+        ]);
     }
 }
