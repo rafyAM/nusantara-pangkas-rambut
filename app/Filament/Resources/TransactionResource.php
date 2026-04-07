@@ -112,6 +112,7 @@ class TransactionResource extends Resource
                                 Forms\Components\Select::make('service_id')
                                     ->label('Layanan')
                                     ->options(fn() => Service::where('is_active', true)->pluck('name', 'id'))
+                                    ->getOptionLabelUsing(fn($value): ?string => Service::find($value)?->name)
                                     ->required(fn(Forms\Get $get) => $get('item_type') === 'service')
                                     ->visible(fn(Forms\Get $get) => $get('item_type') === 'service')
                                     ->searchable()
@@ -131,6 +132,7 @@ class TransactionResource extends Resource
                                         ->where('stock', '>', 0)
                                         ->when($get('../../branch_id'), fn($q, $b) => $q->where('branch_id', $b))
                                         ->pluck('name', 'id'))
+                                    ->getOptionLabelUsing(fn($value): ?string => \App\Models\Product::find($value)?->name)
                                     ->required(fn(Forms\Get $get) => $get('item_type') === 'product')
                                     ->visible(fn(Forms\Get $get) => $get('item_type') === 'product')
                                     ->searchable()
@@ -149,6 +151,7 @@ class TransactionResource extends Resource
                                     ->options(fn(Forms\Get $get) => \App\Models\Employee::where('is_active', true)
                                         ->when($get('../../branch_id'), fn($q, $b) => $q->where('branch_id', $b))
                                         ->pluck('name', 'id'))
+                                    ->getOptionLabelUsing(fn($value): ?string => \App\Models\Employee::find($value)?->name)
                                     ->visible(fn(Forms\Get $get) => $get('item_type') === 'service')
                                     ->searchable()
                                     ->columnSpan(2),
