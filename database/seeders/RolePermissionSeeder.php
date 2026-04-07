@@ -22,7 +22,7 @@ class RolePermissionSeeder extends Seeder
         // ── Daftar permission per resource ──
         $resources = [
             'branch', 'employee', 'service', 'product',
-            'transaction', 'customer',
+            'transaction', 'customer', 'reservation',
         ];
 
         $actions = [
@@ -68,6 +68,9 @@ class RolePermissionSeeder extends Seeder
 
             'view_customer', 'view_any_customer', 'create_customer',
             'update_customer',
+
+            'view_reservation', 'view_any_reservation', 'create_reservation',
+            'update_reservation', 'delete_reservation', 'restore_reservation',
         ];
         $roleAdmin->syncPermissions($adminPermissions);
 
@@ -78,6 +81,9 @@ class RolePermissionSeeder extends Seeder
             'view_product',     'view_any_product',
             'view_employee',    'view_any_employee',
             'view_customer',    'view_any_customer', 'create_customer',
+
+            'view_reservation', 'view_any_reservation', 'create_reservation',
+            'update_reservation', 'delete_reservation', 'restore_reservation',
         ];
         $roleCashier->syncPermissions($cashierPermissions);
 
