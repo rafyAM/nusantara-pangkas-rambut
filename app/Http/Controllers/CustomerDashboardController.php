@@ -76,7 +76,11 @@ class CustomerDashboardController extends Controller
         }
 
         $services = Service::where('is_active', true)->get();
-        $capsters = Employee::with('user')->where('is_active', true)->where('branch_id', $selectedBranchId)->get();
+        $capsters = Employee::with('user')
+            ->where('is_active', true)
+            ->where('branch_id', $selectedBranchId)
+            ->where('position', 'barber')
+            ->get();
 
         return view('dashboard', compact(
             'upcomingReservations',
