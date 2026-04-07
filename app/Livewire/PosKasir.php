@@ -356,9 +356,19 @@ class PosKasir extends Component
 
             DB::commit();
 
-            // Otomatis ubah status Reservasinya jadi "Completed" (Selesai/Lunas)
+            // Otomatis ubah status Reservasinya jadi "Completed" dan sync layanan yang benar-benar dikerjakan
             if ($this->processedReservationId) {
-                \App\Models\Reservation::where('id', $this->processedReservationId)->update(['status' => 'completed']);
+                $reservation = \App\Models\Reservation::find($this->processedReservationId);
+                if ($reservation) {
+                    $reservation->update(['status' => 'completed']);
+
+                    // Sync reservation_services dengan layanan yang benar-benar dikerjakan di POS
+                    $serviceIds = collect($this->cart)
+                        ->filter(fn($item) => $item['type'] === 'service')
+                        ->pluck('id')
+                        ->toArray();
+                    $reservation->services()->sync($serviceIds);
+                }
             }
 
             // Set variables untuk cetak
