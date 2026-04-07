@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Models\Reservation;
 use Carbon\Carbon;
+use App\Notifications\ReservationCancelled;
+use App\Notifications\ReservationReminder;
+
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -35,8 +38,8 @@ Schedule::call(function () {
 
 // Pengingat lewat Web Push Notification (PWA) 20 menit sebelum jadwal tiba
 Schedule::call(function () {
-    $targetTimeStart = Carbon::now()->addMinutes(20)->startOfMinute();
-    $targetTimeEnd = Carbon::now()->addMinutes(20)->endOfMinute();
+    $targetTimeStart = Carbon::now()->addMinutes(5)->startOfMinute();
+    $targetTimeEnd = Carbon::now()->addMinutes(5)->endOfMinute();
 
     $upcoming = Reservation::with('customer')
         ->where('status', 'pending')

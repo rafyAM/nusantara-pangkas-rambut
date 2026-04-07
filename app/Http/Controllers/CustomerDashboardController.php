@@ -72,7 +72,7 @@ class CustomerDashboardController extends Controller
                 'available' => !$exists && !$isPast
             ];
 
-            $start->addMinutes(30); // jarak waktu antar slot
+            $start->addMinutes(10); // jarak waktu antar slot
         }
 
         $services = Service::where('is_active', true)->get();
