@@ -13,9 +13,9 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Auto cancel reservasi jika telat >30 menit (dari jam booking belum di-approve kasir) 
+// Auto cancel reservasi jika telat >10 menit (dari jam booking belum di-approve kasir) 
 Schedule::call(function () {
-    $threshold = Carbon::now()->subMinutes(5); // memberi kelonggaran 5 menit
+    $threshold = Carbon::now()->subMinutes(10); // memberi kelonggaran 10 menit
 
     $expiredReservations = Reservation::with('customer')
         ->where('status', 'pending')
@@ -32,11 +32,11 @@ Schedule::call(function () {
     }
 
     if ($count > 0) {
-        info("Auto-cancelled {$count} reservations due to 30 mins late.");
+        info("Auto-cancelled {$count} reservations due to 10 mins late.");
     }
 })->everyMinute();
 
-// Pengingat lewat Web Push Notification (PWA) 20 menit sebelum jadwal tiba
+// Pengingat lewat Web Push Notification (PWA) 5 menit sebelum jadwal tiba
 Schedule::call(function () {
     $targetTimeStart = Carbon::now()->addMinutes(5)->startOfMinute();
     $targetTimeEnd = Carbon::now()->addMinutes(5)->endOfMinute();
@@ -49,7 +49,7 @@ Schedule::call(function () {
     foreach ($upcoming as $res) {
         if ($res->customer) {
             $res->customer->notify(new \App\Notifications\ReservationReminder($res));
-            info("Sent 20-min reminder for reservation ID {$res->id}");
+            info("Sent 5-min reminder for reservation ID {$res->id}");
         }
     }
 })->everyMinute();
