@@ -62,16 +62,16 @@
 
                     <form method="GET" action="{{ route('dashboard') }}" id="branchForm" class="w-full sm:w-64">
                         <input type="hidden" name="date" value="{{ $selectedDate }}">
-                        <select name="branch_id" onchange="document.getElementById('branchForm').submit()" 
+                        <select name="branch_id" onchange="document.getElementById('branchForm').submit()"
                             class="w-full bg-gray-800 text-white rounded-xl border border-gray-700 
                                 px-3 py-2 text-sm md:px-4 md:py-2.5 md:text-base 
                                 hover:border-gray-500 hover:bg-gray-750 
                                 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 
                                 transition-all duration-200 ease-in-out cursor-pointer shadow-sm appearance-none">
                             @foreach($branches as $branch)
-                                <option value="{{ $branch->id }}" {{ $selectedBranchId == $branch->id ? 'selected' : '' }}>
-                                    Cabang: {{ $branch->name }}
-                                </option>
+                            <option value="{{ $branch->id }}" {{ $selectedBranchId == $branch->id ? 'selected' : '' }}>
+                                Cabang: {{ $branch->name }}
+                            </option>
                             @endforeach
                         </select>
                     </form>
@@ -245,9 +245,8 @@
 
                             <!-- Capster -->
                             <div>
-                                <label class="block text-sm text-gray-300 mb-1">Pilih Kapster (Opsional)</label>
+                                <label class="block text-sm text-gray-300 mb-1">Pilih Kapster </label>
                                 <select name="employee_id" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500">
-                                    <option value="">Siapa saja</option>
                                     <template x-for="capster in availableCapsters" :key="capster.id">
                                         <option :value="capster.id" x-text="capster.name + ' - ' + capster.position.charAt(0).toUpperCase() + capster.position.slice(1)"></option>
                                     </template>
@@ -316,7 +315,7 @@
             function subscribeUser() {
                 navigator.serviceWorker.ready.then(function(registration) {
                     const vapidPublicKey = "{{ config('webpush.vapid.public_key') }}";
-                    if (!vapidPublicKey) return; 
+                    if (!vapidPublicKey) return;
 
                     const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
                     registration.pushManager.subscribe({
@@ -331,15 +330,15 @@
             }
 
             function sendSubscriptionToBackend(subscription) {
-                 fetch('{{ route("push.subscribe") }}', {
-                     method: 'POST',
-                     headers: {
-                         'Content-Type': 'application/json',
-                         'Accept': 'application/json',
-                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                     },
-                     body: JSON.stringify(subscription)
-                 });
+                fetch('{{ route("push.subscribe") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify(subscription)
+                });
             }
 
             function urlB64ToUint8Array(base64String) {
