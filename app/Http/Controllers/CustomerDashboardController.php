@@ -47,7 +47,36 @@ class CustomerDashboardController extends Controller
             ];
         }
 
+        $services = Service::where('is_active', true)->get();
+        $capsters = Employee::with('user')
+            ->where('is_active', true)
+            ->where('branch_id', $selectedBranchId)
+            ->where('position', 'barber')
+            ->get();
+
+        $totalCapsters = $capsters->count();
+
+        // Batch-load semua reservasi pada tanggal & cabang yang dipilih (1 query, bukan N+1)
+        $reservationsOnDate = Reservation::where('branch_id', $selectedBranchId)
+            ->whereDate('reservation_time', $selectedDate)
+            ->whereIn('status', ['pending', 'arrived'])
+            ->get(['reservation_time', 'employee_id']);
+
+        // Bangun lookup map: datetime => [employee_ids] dan datetime => jumlah reservasi tanpa capster
+        $bookedMap = [];
+        $nullBookedCount = [];
+
+        foreach ($reservationsOnDate as $res) {
+            $dt = Carbon::parse($res->reservation_time)->format('Y-m-d H:i:s');
+            if ($res->employee_id !== null) {
+                $bookedMap[$dt][] = $res->employee_id;
+            } else {
+                $nullBookedCount[$dt] = ($nullBookedCount[$dt] ?? 0) + 1;
+            }
+        }
+
         $slots = [];
+        $slotBookedCapsters = [];
 
         // jam buka dan tutup barbershop
         $start = Carbon::parse($selectedDate . ' 08:00');
@@ -60,27 +89,26 @@ class CustomerDashboardController extends Controller
             // Cek apakah slot waktu sudah lewat (realtime)
             $isPast = $start->isPast();
 
-            // cek apakah slot sudah dibooking di cabang spesifik
-            $exists = Reservation::where('reservation_time', $datetime)
-                ->where('branch_id', $selectedBranchId)
-                ->whereIn('status', ['pending', 'arrived'])
-                ->exists();
+            // Cek per-capster: slot hanya penuh jika SEMUA capster sudah terbooking
+            $explicitlyBooked = $bookedMap[$datetime] ?? [];
+            $nullCount = $nullBookedCount[$datetime] ?? 0;
+            $allBooked = $totalCapsters > 0
+                ? (count($explicitlyBooked) + $nullCount) >= $totalCapsters
+                : true; // Jika tidak ada capster, slot tidak tersedia
 
             $slots[] = [
                 'time' => $start->format('H:i'),
                 'datetime' => $datetime,
-                'available' => !$exists && !$isPast
+                'available' => !$allBooked && !$isPast
             ];
+
+            // Simpan mapping capster yang sudah terbooking per slot (untuk frontend filtering)
+            if (!empty($explicitlyBooked)) {
+                $slotBookedCapsters[$datetime] = $explicitlyBooked;
+            }
 
             $start->addMinutes(10); // jarak waktu antar slot
         }
-
-        $services = Service::where('is_active', true)->get();
-        $capsters = Employee::with('user')
-            ->where('is_active', true)
-            ->where('branch_id', $selectedBranchId)
-            ->where('position', 'barber')
-            ->get();
 
         return view('dashboard', compact(
             'upcomingReservations',
@@ -92,6 +120,7 @@ class CustomerDashboardController extends Controller
             'selectedDate',
             'selectedBranchId',
             'slots',
+            'slotBookedCapsters',
         ));
     }
 
@@ -107,14 +136,33 @@ class CustomerDashboardController extends Controller
         /** @var \App\Models\Customer $customer */
         $customer = auth()->guard('customer')->user();
 
-        // Validasi ekstra menghindari bentrok jam (Race condition / Post manipulation)
-        $exists = Reservation::where('reservation_time', $request->reservation_time)
-            ->where('branch_id', $request->branch_id)
-            ->whereIn('status', ['pending', 'arrived'])
-            ->exists();
+        // Validasi per-capster menghindari bentrok jam (Race condition / Post manipulation)
+        if ($request->employee_id) {
+            // Cek apakah capster spesifik sudah terbooking di waktu tersebut
+            $capsterConflict = Reservation::where('reservation_time', $request->reservation_time)
+                ->where('branch_id', $request->branch_id)
+                ->where('employee_id', $request->employee_id)
+                ->whereIn('status', ['pending', 'arrived'])
+                ->exists();
 
-        if ($exists) {
-            return back()->withErrors(['error' => 'Mohon maaf, waktu ini baru saja dibooking oleh pelanggan lain di cabang yang sama. Silakan pilih waktu lain.']);
+            if ($capsterConflict) {
+                return back()->withErrors(['error' => 'Kapster ini sudah memiliki booking pada waktu tersebut. Silakan pilih kapster lain.']);
+            }
+        } else {
+            // "Siapa saja" — cek apakah semua capster sudah penuh
+            $totalCapsters = Employee::where('is_active', true)
+                ->where('branch_id', $request->branch_id)
+                ->where('position', 'barber')
+                ->count();
+
+            $bookedCount = Reservation::where('reservation_time', $request->reservation_time)
+                ->where('branch_id', $request->branch_id)
+                ->whereIn('status', ['pending', 'arrived'])
+                ->count();
+
+            if ($bookedCount >= $totalCapsters) {
+                return back()->withErrors(['error' => 'Semua kapster sudah terbooking pada waktu tersebut. Silakan pilih waktu lain.']);
+            }
         }
 
         $reservation = Reservation::create([

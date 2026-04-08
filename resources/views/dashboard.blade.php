@@ -3,7 +3,18 @@
 
     </x-slot>
 
-    <div x-data="{ showBookingModal:false, selectedTime:'', selectedDatetime:'' }" class="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 py-8 px-4">
+    <div x-data="{
+        showBookingModal: false,
+        selectedTime: '',
+        selectedDatetime: '',
+        bookedCapsters: {{ Js::from($slotBookedCapsters) }},
+        allCapsters: {{ Js::from($capsters->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'position' => $c->position])) }},
+        get availableCapsters() {
+            if (!this.selectedDatetime) return this.allCapsters;
+            const booked = this.bookedCapsters[this.selectedDatetime] || [];
+            return this.allCapsters.filter(c => !booked.includes(c.id));
+        }
+    }" class="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 py-8 px-4">
         <div class="max-w-7xl mx-auto">
 
             <!-- WELCOME CARD -->
@@ -237,11 +248,9 @@
                                 <label class="block text-sm text-gray-300 mb-1">Pilih Kapster (Opsional)</label>
                                 <select name="employee_id" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500">
                                     <option value="">Siapa saja</option>
-                                    @foreach($capsters as $capster)
-                                    <option value="{{ $capster->id }}">
-                                        {{ $capster->name }} - {{ ucfirst($capster->position) }}
-                                    </option>
-                                    @endforeach
+                                    <template x-for="capster in availableCapsters" :key="capster.id">
+                                        <option :value="capster.id" x-text="capster.name + ' - ' + capster.position.charAt(0).toUpperCase() + capster.position.slice(1)"></option>
+                                    </template>
                                 </select>
                             </div>
                         </div>
