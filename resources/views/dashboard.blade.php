@@ -46,12 +46,96 @@
             </div>
             @endif
 
+            @php
+                $isKapsterSelected = !empty($selectedEmployeeId);
+            @endphp
+
+            <!-- STEPPER PROGRESS UI -->
+            <div class="mb-10 w-full max-w-3xl mx-auto px-4 sm:px-10">
+                <div class="flex items-start justify-between relative">
+                    <!-- Connecting Line Base -->
+                    <div class="absolute left-8 right-8 top-5 h-[3px] bg-gray-800 z-0 rounded-full"></div>
+                    
+                    <!-- Active Line (Progress) -->
+                    <div class="absolute left-8 top-5 h-[3px] bg-yellow-500 z-0 rounded-full transition-all duration-700 ease-in-out" 
+                         x-bind:style="showBookingModal ? 'width: calc(100% - 4rem)' : '{{ $isKapsterSelected ? 'calc(66.66% - 2.5rem)' : (!empty($selectedDate) ? 'calc(33.33% - 1.5rem)' : '0%') }}'"></div>
+
+                    <!-- Step 1: Cabang -->
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-[0_0_15px_rgba(234,179,8,0.4)] transition-all duration-300 {{ !empty($selectedBranchId) ? 'bg-yellow-500 text-black' : 'bg-gray-950 border-[3px] border-yellow-500 text-yellow-500' }}">
+                            @if(!empty($selectedBranchId))
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                            @else
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                            @endif
+                        </div>
+                        <p class="mt-3 text-sm font-bold {{ !empty($selectedBranchId) ? 'text-white' : 'text-yellow-500' }}">Cabang</p>
+                        <p class="text-xs font-medium tracking-wide {{ !empty($selectedBranchId) ? 'text-yellow-500' : 'text-yellow-400/80 animate-pulse' }}">{{ !empty($selectedBranchId) ? 'Selesai' : 'Sedang Pilih' }}</p>
+                    </div>
+
+                    <!-- Step 2: Tanggal -->
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-[3px] transition-all duration-300
+                            {{ !empty($selectedDate) 
+                                ? 'bg-yellow-500 border-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)]' 
+                                : (!empty($selectedBranchId) ? 'bg-gray-950 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.4)]' : 'bg-gray-950 border-gray-800 text-gray-600') }}">
+                            @if(!empty($selectedDate))
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                            @elseif(!empty($selectedBranchId))
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                            @endif
+                        </div>
+                        <p class="mt-3 text-sm font-bold {{ !empty($selectedDate) ? 'text-white' : (!empty($selectedBranchId) ? 'text-yellow-500' : 'text-gray-600') }}">Tanggal</p>
+                        <p class="text-xs font-medium tracking-wide {{ !empty($selectedDate) ? 'text-yellow-500' : (!empty($selectedBranchId) ? 'text-yellow-400/80 animate-pulse' : 'text-gray-600') }}">{{ !empty($selectedDate) ? 'Selesai' : (!empty($selectedBranchId) ? 'Sedang Pilih' : 'Menunggu') }}</p>
+                    </div>
+
+                    <!-- Step 3: Kapster -->
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-[3px] transition-all duration-300
+                            {{ $isKapsterSelected 
+                                ? 'bg-yellow-500 border-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)]' 
+                                : (!empty($selectedDate) ? 'bg-gray-950 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.4)]' : 'bg-gray-950 border-gray-800 text-gray-600') }}">
+                            @if($isKapsterSelected)
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                            @elseif(!empty($selectedDate))
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                            @endif
+                        </div>
+                        <p class="mt-3 text-sm font-bold {{ $isKapsterSelected ? 'text-white' : (!empty($selectedDate) ? 'text-yellow-500' : 'text-gray-600') }}">Kapster</p>
+                        <p class="text-xs font-medium tracking-wide {{ $isKapsterSelected ? 'text-yellow-500' : (!empty($selectedDate) ? 'text-yellow-400/80 animate-pulse' : 'text-gray-600') }}">{{ $isKapsterSelected ? 'Selesai' : (!empty($selectedDate) ? 'Sedang Pilih' : 'Menunggu') }}</p>
+                    </div>
+
+                    <!-- Step 4: Waktu -->
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-[3px] transition-all duration-300"
+                             x-bind:class="{
+                                'bg-yellow-500 border-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.4)]': showBookingModal,
+                                'bg-gray-950 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.4)]': !showBookingModal && {{ $isKapsterSelected ? 'true' : 'false' }},
+                                'bg-gray-950 border-gray-800 text-gray-600': !{{ $isKapsterSelected ? 'true' : 'false' }}
+                             }">
+                             <template x-if="showBookingModal">
+                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                             </template>
+                             <template x-if="!showBookingModal && {{ $isKapsterSelected ? 'true' : 'false' }}">
+                                 <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                             </template>
+                        </div>
+                        <p class="mt-3 text-sm font-bold transition-colors duration-300" 
+                           x-bind:class="showBookingModal ? 'text-white' : ({{ $isKapsterSelected ? 'true' : 'false' }} ? 'text-yellow-500' : 'text-gray-600')">Waktu</p>
+                        <p class="text-xs font-medium tracking-wide transition-colors duration-300"
+                           x-bind:class="showBookingModal ? 'text-yellow-500' : ({{ $isKapsterSelected ? 'true' : 'false' }} ? 'text-yellow-400/80 animate-pulse' : 'text-gray-700')">
+                           <span x-text="showBookingModal ? 'Selesai' : ({{ $isKapsterSelected ? 'true' : 'false' }} ? 'Sedang Pilih' : 'Menunggu')"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <!-- BRANCH & DATE PICKER -->
             <div class="mb-10">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                     <h2 class="text-lg font-semibold text-white flex items-center">
                         <span class="w-1 h-5 bg-yellow-500 rounded-full mr-2"></span>
-                        Pilih Jadwal & Cabang
+                        Pilih Cabang
                     </h2>
 
                     <form method="GET" action="{{ route('dashboard') }}" id="branchForm" class="w-full sm:w-64">
@@ -62,6 +146,7 @@
                                 hover:border-gray-500 hover:bg-gray-750 
                                 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 
                                 transition-all duration-200 ease-in-out cursor-pointer shadow-sm appearance-none">
+                            <option value="" disabled {{ empty($selectedBranchId) ? 'selected' : '' }}>Pilih </option>
                             @foreach($branches as $branch)
                             <option value="{{ $branch->id }}" {{ $selectedBranchId == $branch->id ? 'selected' : '' }}>
                                 Cabang: {{ $branch->name }}
@@ -70,9 +155,16 @@
                         </select>
                     </form>
                 </div>
-                <div class="relative">
-                    <div class="absolute left-0 top-0 bottom-3 w-8 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none"></div>
-                    <div class="absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-zinc-900 to-transparent z-10 pointer-events-none"></div>
+
+                @if(!empty($selectedBranchId))
+                <div class="relative animate-[fadeIn_0.5s_ease-out]">
+                    <div class="flex items-center gap-2 mb-3 mt-6">
+                        <span class="w-1 h-5 bg-yellow-500 rounded-full"></span>
+                        <h2 class="text-md font-semibold text-white">Pilih Tanggal</h2>
+                    </div>
+
+                    <div class="absolute left-0 top-10 bottom-3 w-8 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none"></div>
+                    <div class="absolute right-0 top-10 bottom-3 w-8 bg-gradient-to-l from-zinc-900 to-transparent z-10 pointer-events-none"></div>
 
                     <div class="flex gap-2.5 overflow-x-auto pb-4 px-8 scrollbar-hide scroll-smooth snap-x snap-mandatory">
                         @foreach($availableDays as $day)
@@ -98,10 +190,20 @@
                         @endforeach
                     </div>
                 </div>
+                @else
+                <div class="mt-6 p-6 text-center bg-gray-800/40 border border-dashed border-gray-700/60 rounded-2xl opacity-80 backdrop-blur-sm transition-all duration-300">
+                    <div class="w-12 h-12 bg-gray-800/80 text-yellow-500/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </div>
+                    <h3 class="text-gray-300 font-semibold text-base mb-1">Lokasi Belum Ditentukan</h3>
+                    <p class="text-xs text-gray-500">Pilih salah satu cabang pangkas rambut di atas untuk melanjutkan.</p>
+                </div>
+                @endif
             </div>
 
             <!-- KAPSTER PICKER -->
-            <div class="mb-10">
+            @if(!empty($selectedDate))
+            <div class="mb-10 animate-[fadeIn_0.5s_ease-out]">
                 <div class="flex items-center gap-2 mb-4">
                     <span class="w-1 h-5 bg-yellow-500 rounded-full"></span>
                     <h2 class="text-lg font-semibold text-white">Pilih Kapster</h2>
@@ -110,7 +212,7 @@
                     <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none"></div>
                     <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-900 to-transparent z-10 pointer-events-none"></div>
 
-                    <div class="flex gap-4 overflow-x-auto pb-4 px-8 scrollbar-hide scroll-smooth snap-x snap-mandatory">
+                    <div class="flex gap-4 overflow-x-auto pb-4 px-8 scrollbar-hide scroll-smooth snap-x snap-mandatory">                      
                         @foreach($capsters as $capster)
                         <a href="{{ route('dashboard', ['date' => $selectedDate, 'branch_id' => $selectedBranchId, 'employee_id' => $capster->id]) }}"
                             class="group relative min-w-[120px] rounded-2xl p-3 flex flex-col items-center justify-center gap-3 flex-shrink-0 snap-center transition-all duration-200 border
@@ -132,6 +234,15 @@
                     </div>
                 </div>
             </div>
+            @else
+            <div class="mb-10 p-8 text-center bg-gray-800/40 border border-dashed border-gray-700/60 rounded-2xl opacity-80 backdrop-blur-sm transition-all duration-300 hover:opacity-100 group">
+                <div class="w-14 h-14 bg-gray-800/80 text-yellow-500/50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-yellow-500/10 group-hover:text-yellow-500 transition-colors duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+                <h3 class="text-gray-300 font-semibold text-lg mb-2">Pilih Tanggal Dulu</h3>
+                <p class="text-sm text-gray-500 max-w-md mx-auto">Tentukan Tanggal kedatangan di atas untuk melihat siapa saja Kapster profesional kami yang bersedia melayani harimu.</p>
+            </div>
+            @endif
 
             <!-- TIME SLOT -->
             <div class="mb-12">
@@ -241,7 +352,7 @@
                         </div>
 
                         <!-- Form -->
-                        <div class="space-y-4">
+                        <div class="space-y-5">
                             <!-- Cabang -->
                             <div>
                                 <label class="block text-sm text-gray-300 mb-1">Cabang</label>

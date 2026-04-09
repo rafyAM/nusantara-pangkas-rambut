@@ -17,9 +17,9 @@ class CustomerDashboardController extends Controller
         /** @var \App\Models\Customer $customer */
         $customer = auth()->guard('customer')->user();
 
-        $selectedDate = $request->date ?? now()->format('Y-m-d');
+        $selectedDate = $request->date;
         $branches = Branch::all();
-        $selectedBranchId = $request->branch_id ?? ($branches->first()->id ?? null);
+        $selectedBranchId = $request->branch_id;
         $selectedEmployeeId = $request->employee_id ?? null;
 
         $upcomingReservations = $customer->reservations()
@@ -44,16 +44,20 @@ class CustomerDashboardController extends Controller
         }
 
         $services = Service::where('is_active', true)->get();
-        $capsters = Employee::with('user')
-            ->where('is_active', true)
-            ->where('branch_id', $selectedBranchId)
-            ->where('position', 'barber')
-            ->get();
+        
+        $capsters = collect();
+        if ($selectedBranchId) {
+            $capsters = Employee::with('user')
+                ->where('is_active', true)
+                ->where('branch_id', $selectedBranchId)
+                ->where('position', 'barber')
+                ->get();
+        }
 
         $slots = [];
 
-        // Hanya hitung slots HARI INI jika Kapster (employee_id) sudah dipilih.
-        if ($selectedEmployeeId) {
+        // Hanya hitung slots HARI INI jika Kapster (employee_id) dan Tanggal (date) sudah dipilih.
+        if ($selectedEmployeeId && $selectedDate) {
             $reservationsOnDate = Reservation::where('branch_id', $selectedBranchId)
                 ->where('employee_id', $selectedEmployeeId)
                 ->whereDate('reservation_time', $selectedDate)
