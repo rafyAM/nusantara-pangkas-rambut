@@ -7,13 +7,7 @@
         showBookingModal: false,
         selectedTime: '',
         selectedDatetime: '',
-        bookedCapsters: {{ Js::from($slotBookedCapsters) }},
-        allCapsters: {{ Js::from($capsters->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'position' => $c->position])) }},
-        get availableCapsters() {
-            if (!this.selectedDatetime) return this.allCapsters;
-            const booked = this.bookedCapsters[this.selectedDatetime] || [];
-            return this.allCapsters.filter(c => !booked.includes(c.id));
-        }
+        selectedDatetime: '',
     }" class="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 py-8 px-4">
         <div class="max-w-7xl mx-auto">
 
@@ -106,6 +100,39 @@
                 </div>
             </div>
 
+            <!-- KAPSTER PICKER -->
+            <div class="mb-10">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-5 bg-yellow-500 rounded-full"></span>
+                    <h2 class="text-lg font-semibold text-white">Pilih Kapster</h2>
+                </div>
+                <div class="relative">
+                    <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none"></div>
+                    <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-900 to-transparent z-10 pointer-events-none"></div>
+
+                    <div class="flex gap-4 overflow-x-auto pb-4 px-8 scrollbar-hide scroll-smooth snap-x snap-mandatory">
+                        @foreach($capsters as $capster)
+                        <a href="{{ route('dashboard', ['date' => $selectedDate, 'branch_id' => $selectedBranchId, 'employee_id' => $capster->id]) }}"
+                            class="group relative min-w-[120px] rounded-2xl p-3 flex flex-col items-center justify-center gap-3 flex-shrink-0 snap-center transition-all duration-200 border
+                            {{ $selectedEmployeeId == $capster->id
+                                ? 'bg-yellow-500 text-black border-yellow-400 shadow-lg shadow-yellow-500/20 scale-[1.05]'
+                                : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white hover:scale-[1.03]' }}">
+                            
+                            <div class="w-12 h-12 rounded-full flexitems-center justify-center font-bold text-xl mb-1
+                                {{ $selectedEmployeeId == $capster->id ? 'bg-black/20 text-black' : 'bg-white/10 text-white' }} flex items-center justify-center truncate px-2">
+                                {{ strtoupper(substr($capster->name, 0, 1)) }}
+                            </div>
+                            <span class="text-sm font-semibold truncate w-full text-center">{{ $capster->name }}</span>
+                        </a>
+                        @endforeach
+                        
+                        @if($capsters->isEmpty())
+                        <div class="text-gray-500 text-sm italic w-full text-center py-4">Belum ada kapster yang aktif di cabang ini.</div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
             <!-- TIME SLOT -->
             <div class="mb-12">
                 <h2 class="text-lg font-semibold text-white mb-5 flex items-center gap-2">
@@ -113,8 +140,9 @@
                     Pilih Waktu
                 </h2>
 
+                @if($selectedEmployeeId)
                 <div class="grid grid-cols-3 md:grid-cols-6 gap-3">
-                    @foreach($slots as $slot)
+                    @forelse($slots as $slot)
                     <button
                         @if($slot['available'])
                         @click="showBookingModal=true;selectedTime='{{ $slot['time'] }}';selectedDatetime='{{ $slot['datetime'] }}'"
@@ -125,8 +153,15 @@
                         @endif>
                         {{ $slot['time'] }}
                     </button>
-                    @endforeach
+                    @empty
+                    <div class="col-span-full py-4 text-center text-gray-400 bg-gray-800 rounded-xl border border-gray-700">Tidak ada slot tersedia.</div>
+                    @endforelse
                 </div>
+                @else
+                <div class="p-6 text-center bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-2xl">
+                    Silakan pilih <strong class="text-yellow-400">Kapster</strong> terlebih dahulu untuk melihat jadwal ketersediaan waktu potong rambut.
+                </div>
+                @endif
             </div>
 
             <!-- UPCOMING BOOKING -->
@@ -245,12 +280,9 @@
 
                             <!-- Capster -->
                             <div>
-                                <label class="block text-sm text-gray-300 mb-1">Pilih Kapster </label>
-                                <select name="employee_id" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-yellow-500">
-                                    <template x-for="capster in availableCapsters" :key="capster.id">
-                                        <option :value="capster.id" x-text="capster.name + ' - ' + capster.position.charAt(0).toUpperCase() + capster.position.slice(1)"></option>
-                                    </template>
-                                </select>
+                                <label class="block text-sm text-gray-300 mb-1">Kapster Terpilih</label>
+                                <input type="hidden" name="employee_id" value="{{ $selectedEmployeeId }}">
+                                <input type="text" disabled value="{{ $capsters->where('id', $selectedEmployeeId)->first()->name ?? '' }}" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-yellow-500 font-semibold cursor-not-allowed">
                             </div>
                         </div>
                     </div>
