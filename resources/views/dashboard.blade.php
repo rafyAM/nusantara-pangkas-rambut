@@ -166,7 +166,7 @@
                     <div class="absolute left-0 top-10 bottom-3 w-8 bg-gradient-to-r from-zinc-900 to-transparent z-10 pointer-events-none"></div>
                     <div class="absolute right-0 top-10 bottom-3 w-8 bg-gradient-to-l from-zinc-900 to-transparent z-10 pointer-events-none"></div>
 
-                    <div class="flex gap-2.5 overflow-x-auto pb-4 px-8 scrollbar-hide scroll-smooth snap-x snap-mandatory">
+                    <div class="flex gap-2.5 overflow-x-auto pb-1 px-8 scrollbar-hide scroll-smooth snap-x snap-mandatory">
                         @foreach($availableDays as $day)
                         <a href="{{ route('dashboard', ['date' => $day['date'], 'branch_id' => $selectedBranchId]) }}"
                             class="group relative min-w-[76px] h-[84px] rounded-2xl flex flex-col items-center justify-center gap-2 px-2 flex-shrink-0 snap-center transition-all duration-200
