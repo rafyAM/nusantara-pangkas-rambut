@@ -14,6 +14,10 @@ Route::get('/dashboard', [CustomerDashboardController::class, 'index'])
     ->middleware(['auth:customer', 'verified'])
     ->name('dashboard');
 
+Route::get('/history', [CustomerDashboardController::class, 'history'])
+    ->middleware(['auth:customer', 'verified'])
+    ->name('history');
+
 Route::post('/reservations', [CustomerDashboardController::class, 'store'])
     ->middleware(['auth:customer', 'verified'])
     ->name('reservations.store');

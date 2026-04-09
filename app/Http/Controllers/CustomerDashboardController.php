@@ -29,12 +29,7 @@ class CustomerDashboardController extends Controller
             ->orderBy('reservation_time', 'asc')
             ->get();
 
-        $recentHistory = $customer->reservations()
-            ->with(['employee.user', 'branch', 'services'])
-            ->whereIn('status', ['completed', 'cancelled'])
-            ->orderBy('reservation_time', 'desc')
-            ->take(5)
-            ->get();
+
 
         $availableDays = [];
 
@@ -97,7 +92,6 @@ class CustomerDashboardController extends Controller
 
         return view('dashboard', compact(
             'upcomingReservations',
-            'recentHistory',
             'services',
             'capsters',
             'branches',
@@ -145,5 +139,20 @@ class CustomerDashboardController extends Controller
         }
 
         return redirect()->route('dashboard')->with('success', 'Booking berhasil dibuat!');
+    }
+
+    public function history(Request $request)
+    {
+        /** @var \App\Models\Customer $customer */
+        $customer = auth()->guard('customer')->user();
+
+        $history = $customer->reservations()
+            ->with(['employee.user', 'branch', 'services'])
+            ->whereIn('status', ['completed', 'cancelled'])
+            ->orderBy('reservation_time', 'desc')
+            ->take(15)
+            ->get();
+
+        return view('history', compact('history'));
     }
 }
