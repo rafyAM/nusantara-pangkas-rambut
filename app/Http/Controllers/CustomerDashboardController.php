@@ -17,10 +17,16 @@ class CustomerDashboardController extends Controller
         /** @var \App\Models\Customer $customer */
         $customer = auth()->guard('customer')->user();
 
-        $selectedDate = $request->date;
+        $selectedDate = $request->date ?? session('booking_date');
         $branches = Branch::all();
-        $selectedBranchId = $request->branch_id;
-        $selectedEmployeeId = $request->employee_id ?? null;
+        $selectedBranchId = $request->branch_id ?? session('booking_branch_id');
+        $selectedEmployeeId = $request->employee_id ?? session('booking_employee_id');
+
+        session([
+            'booking_date' => $selectedDate,
+            'booking_branch_id' => $selectedBranchId,
+            'booking_employee_id' => $selectedEmployeeId,
+        ]);
 
         $upcomingReservations = $customer->reservations()
             ->with(['employee.user', 'branch', 'services'])
@@ -29,9 +35,8 @@ class CustomerDashboardController extends Controller
             ->orderBy('reservation_time', 'asc')
             ->get();
 
-
-
         $availableDays = [];
+        
 
         for ($i = 0; $i < 7; $i++) {
             $date = Carbon::now()->addDays($i);
@@ -141,6 +146,8 @@ class CustomerDashboardController extends Controller
         if ($request->service_id) {
             $reservation->services()->attach($request->service_id);
         }
+
+        session() -> forget(['booking_date', 'booking_branch_id', 'booking_employee_id']);  
 
         return redirect()->route('dashboard')->with('success', 'Booking berhasil dibuat!');
     }
