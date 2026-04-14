@@ -24,8 +24,31 @@
                     {{ config('app.name', 'Nusantara Pangkas Rambut') }}
                 </div>
 
-                <!-- User Menu -->
+                <!-- Shift Status & User Menu -->
                 <div class="flex items-center space-x-4 text-sm font-medium">
+                    @php
+                        $currentShift = \App\Models\CashierShift::where('user_id', auth()->id())->where('status', 'open')->latest()->first();
+                    @endphp
+
+                    @if($currentShift)
+                        <div class="flex items-center space-x-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                <span class="w-2 h-2 mr-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                Shift Aktif
+                            </span>
+                            <span class="text-gray-400 text-xs">sejak {{ $currentShift->start_at->timezone('Asia/Jakarta')->format('H:i') }}</span>
+                            <button onclick="Livewire.dispatch('openCashMovementFromLayout')"
+                                class="px-3 py-1 text-xs font-medium rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition">
+                                Cash In/Out
+                            </button>
+                            <button onclick="Livewire.dispatch('openCloseShiftFromLayout')"
+                                class="px-3 py-1 text-xs font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition">
+                                Tutup Shift
+                            </button>
+                        </div>
+                        <span class="text-gray-300">|</span>
+                    @endif
+
                     <span class="text-gray-600">Halo, {{ auth()->user()->name ?? 'Kasir' }}</span>
                     <form method="POST" action="{{ route('filament.admin.auth.logout') }}">
                         @csrf
