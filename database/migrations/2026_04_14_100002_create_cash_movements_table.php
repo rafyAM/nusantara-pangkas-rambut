@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('cashier_shift_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->restrictOnDelete();
-            $table->string('type'); // in, out
+            $table->string('type');
             $table->decimal('amount', 15, 2);
             $table->string('reason');
             $table->timestamps();

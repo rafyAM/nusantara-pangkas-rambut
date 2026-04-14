@@ -67,4 +67,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasAnyRole(['super_admin', 'admin', 'cashier']);
     }
+
+    public function cashierShifts()
+    {
+        return $this->hasMany(CashierShift::class);
+    }
 }

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('transaction_id')->constrained()->cascadeOnDelete();
             $table->foreignId('cashier_shift_id')->constrained()->cascadeOnDelete();
-            $table->string('method'); // cash, qris, transfer, e_wallet, debit_card, credit_card
+            $table->string('method');
             $table->decimal('amount', 15, 2);
             $table->string('reference')->nullable();
             $table->timestamps();

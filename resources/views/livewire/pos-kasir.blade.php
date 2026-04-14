@@ -1,8 +1,6 @@
 <div>
 
-    {{-- ============================================= --}}
-    {{-- OPEN SHIFT OVERLAY (tampil jika belum ada shift aktif) --}}
-    {{-- ============================================= --}}
+    {{-- OPEN MODAL OVERLAY --}}
     @if(!$this->activeShift)
         <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm">
             <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
@@ -34,9 +32,7 @@
         </div>
     @endif
 
-    {{-- ============================================= --}}
     {{-- MAIN POS LAYOUT --}}
-    {{-- ============================================= --}}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-6rem)]">
 
         {{-- Kolom Kiri: Katalog (60%) --}}
@@ -351,9 +347,7 @@
         </div>
     </div>
 
-    {{-- ============================================= --}}
     {{-- TRANSACTION SUCCESS MODAL --}}
-    {{-- ============================================= --}}
     <div id="transaction-modal" style="display: none;" onclick="if(event.target===this) closeTransactionModal()"
         class="fixed inset-0 z-50 print:hidden flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm"
         aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -383,9 +377,7 @@
         </div>
     </div>
 
-    {{-- ============================================= --}}
     {{-- CASH MOVEMENT MODAL --}}
-    {{-- ============================================= --}}
     @if($showCashMovementModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm print:hidden"
              onclick="if(event.target===this) @this.set('showCashMovementModal', false)">
@@ -440,9 +432,7 @@
         </div>
     @endif
 
-    {{-- ============================================= --}}
     {{-- CLOSE SHIFT MODAL --}}
-    {{-- ============================================= --}}
     @if($showCloseShiftModal && !empty($shiftSummary))
         @php
             $ss = $shiftSummary;
@@ -524,7 +514,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Kas Aktual (hitung fisik)</label>
-                                <input wire:model.live="actualCash" type="number" min="0" step="1000"
+                                <input wire:model.live="actualCash" type="number" step="1000"
                                     class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
                                 @error('actualCash') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
