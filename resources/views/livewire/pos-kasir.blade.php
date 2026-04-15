@@ -16,9 +16,31 @@
                     <div class="mb-4 text-sm text-red-600 bg-red-50 p-2 rounded">{{ $message }}</div>
                 @enderror
 
-                <div class="mb-6">
+                <div class="mb-6" x-data="{
+                    nilaiAsli: @entangle('openingCash'), 
+                    nilaiTampil: '',
+                    
+                    formatRupiah() {
+                        let angkaSaja = this.nilaiTampil.toString().replace(/[^0-9]/g, '');
+                        
+                        if (angkaSaja) {
+                            this.nilaiTampil = parseInt(angkaSaja, 10).toLocaleString('id-ID');
+                            this.nilaiAsli = parseInt(angkaSaja, 10);
+                        } else {
+                            this.nilaiTampil = '';
+                            this.nilaiAsli = 0;
+                        }
+                    },
+                    
+                    init() {
+                        if(this.nilaiAsli) {
+                            this.nilaiTampil = this.nilaiAsli.toString();
+                            this.formatRupiah();
+                        }
+                    }
+                }"> 
                     <label class="block text-sm font-medium text-gray-700 mb-2 text-left">Modal Awal (Rp)</label>
-                    <input wire:model="openingCash" type="number" min="0" step="1000" autofocus
+                    <input type="text" x-model="nilaiTampil" @input="formatRupiah()" autofocus
                         class="w-full text-2xl font-bold text-center p-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="0">
                 </div>
