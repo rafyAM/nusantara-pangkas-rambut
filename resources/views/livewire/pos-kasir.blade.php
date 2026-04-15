@@ -1,7 +1,7 @@
 <div>
 
-    {{-- OPEN MODAL OVERLAY --}}
-    @if(!$this->activeShift)
+    {{-- OPEN OVERLAY MODAL AWAL --}}
+    @if(!$this->getActiveShift())
         <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm">
             <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
                 <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mb-4">
@@ -674,6 +674,9 @@
 
         window.addEventListener('transaction-completed', () => openTransactionModal());
         window.addEventListener('shift-closed', () => {
+            window.location.reload();
+        });
+        window.addEventListener('shift-opened', () => {
             window.location.reload();
         });
     </script>

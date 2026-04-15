@@ -61,8 +61,7 @@ class PosKasir extends Component
     //  COMPUTED PROPERTIES
     // =============================================
 
-    #[Computed]
-    public function activeShift()
+    public function getActiveShift()
     {
         $user = Auth::user();
         if (!$user) {
@@ -166,7 +165,7 @@ class PosKasir extends Component
      */
     public function getShiftSummary(): array
     {
-        $shift = $this->activeShift;
+        $shift = $this->getActiveShift();
         if (!$shift) {
             return [];
         }
@@ -235,7 +234,8 @@ class PosKasir extends Component
         ]);
 
         $this->openingCash = 0;
-        unset($this->activeShift);
+
+        $this->dispatch('shift-opened');
     }
 
     #[On('openCloseShiftFromLayout')]
@@ -248,7 +248,7 @@ class PosKasir extends Component
 
     public function closeShift()
     {
-        $shift = $this->activeShift;
+        $shift = $this->getActiveShift();
         if (!$shift) {
             return;
         }
@@ -263,7 +263,6 @@ class PosKasir extends Component
         $this->showCloseShiftModal = false;
         $this->actualCash = 0;
         $this->closingNotes = '';
-        unset($this->activeShift);
 
         // Dispatch event agar JS bisa menampilkan notifikasi atau redirect
         $this->dispatch('shift-closed');
@@ -284,7 +283,7 @@ class PosKasir extends Component
 
     public function saveCashMovement()
     {
-        $shift = $this->activeShift;
+        $shift = $this->getActiveShift();
         if (!$shift) {
             $this->addError('cashMovement', 'Tidak ada shift aktif.');
             return;
@@ -311,7 +310,6 @@ class PosKasir extends Component
         $this->showCashMovementModal = false;
         $this->cashMovementAmount = 0;
         $this->cashMovementReason = '';
-        unset($this->activeShift);
     }
 
     // =============================================
@@ -477,7 +475,7 @@ class PosKasir extends Component
         }
 
         // Validasi shift aktif
-        $shift = $this->activeShift;
+        $shift = $this->getActiveShift();
         if (!$shift) {
             $this->addError('general', 'Tidak ada shift aktif. Silakan buka shift terlebih dahulu.');
             return;
@@ -601,7 +599,6 @@ class PosKasir extends Component
             $this->discountValue = 0;
             $this->discountType = 'nominal';
             $this->processedReservationId = null;
-            unset($this->activeShift); // Refresh computed
 
             $this->dispatch('transaction-completed');
         } catch (\Exception $e) {
