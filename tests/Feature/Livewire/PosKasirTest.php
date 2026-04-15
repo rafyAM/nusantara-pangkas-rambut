@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Branch;
+use App\Models\CashierShift;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Service;
@@ -27,6 +28,13 @@ function setupCashierEnv(): array
     $employee = Employee::factory()->create([
         'branch_id' => $branch->id,
         'user_id'   => $user->id,
+    ]);
+
+    CashierShift::create([
+        'user_id' => $user->id,
+        'start_at' => now(),
+        'opening_cash' => 0,
+        'status' => 'open',
     ]);
 
     return compact('user', 'branch', 'employee');
