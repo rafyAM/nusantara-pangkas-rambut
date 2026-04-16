@@ -5,38 +5,70 @@ namespace App\Livewire;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use App\Models\Service;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\CashierShift;
+use App\Models\CashMovement;
+use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 #[Layout('layouts.kasir')]
 class PosKasir extends Component
 {
+    // --- Cart & Katalog ---
     public array $cart = [];
     public string $search = '';
     public string $activeTab = 'service';
 
+    // --- Customer ---
     public string $customerName = '';
     public string $customerSearch = '';
+    public string $customerPhone = '';
     public array $customerSuggestions = [];
     public ?int $selectedCustomerId = null;
 
-    // Track reservasi agar otomatis statusnya menjadi completed saat dibayar
+    // --- Reservasi ---
     public ?int $processedReservationId = null;
 
+    // --- Diskon & Pembayaran ---
     public string $discountType = 'nominal';
     public float $discountValue = 0;
-
     public string $paymentMethod = 'cash';
     public float $paymentAmount = 0;
 
+    // --- Transaksi Selesai ---
     public ?int $completedTransactionId = null;
     public string $completedInvoiceNumber = '';
-    // --- Computed Properties ---
+
+    // --- Shift Kasir ---
+    public float $openingCash = 0;
+    public float $actualCash = 0;
+    public string $closingNotes = '';
+    public bool $showCloseShiftModal = false;
+
+    // --- Cash Movement ---
+    public bool $showCashMovementModal = false;
+    public string $cashMovementType = 'in';
+    public float $cashMovementAmount = 0;
+    public string $cashMovementReason = '';
+
+    // =============================================
+    //  COMPUTED PROPERTIES
+    // =============================================
+
+    public function getActiveShift()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return null;
+        }
+        return CashierShift::open()->byUser($user->id)->latest()->first();
+    }
 
     #[Computed]
     public function services()
@@ -44,54 +76,6 @@ class PosKasir extends Component
         return Service::where('is_active', true)
             ->where('name', 'like', '%' . $this->search . '%')
             ->get();
-    }
-
-    private function getReservationsList()
-    {
-        /** @var \App\Models\User|null $user */
-        $user = \Illuminate\Support\Facades\Auth::user();
-        if (!$user) {
-            return collect();
-        }
-
-        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
-
-        $query = \App\Models\Reservation::with(['customer', 'employee', 'services'])
-            ->whereIn('status', ['pending', 'arrived'])
-            ->orderBy('reservation_time', 'asc');
-
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
-        }
-
-        if (!empty($this->search)) {
-            $query->whereHas('customer', function($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('phone', 'like', '%' . $this->search . '%');
-            });
-        }
-
-        return $query->get();
-    }
-
-    private function getProductsList()
-    {
-        /** @var \App\Models\User|null $user */
-        $user = \Illuminate\Support\Facades\Auth::user();
-        if (!$user) {
-            return collect();
-        }
-
-        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
-
-        $query = Product::where('is_active', true)
-            ->where('name', 'like', '%' . $this->search . '%');
-
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
-        }
-
-        return $query->get();
     }
 
     #[Computed]
@@ -118,12 +102,219 @@ class PosKasir extends Component
     #[Computed]
     public function changeAmount()
     {
-        if ($this->paymentMethod !== 'cash')
+        if ($this->paymentMethod !== 'cash') {
             return 0;
+        }
         return max(0, $this->paymentAmount - $this->total());
     }
 
-    // --- Methods ---
+    // =============================================
+    //  PRIVATE HELPERS
+    // =============================================
+
+    private function getReservationsList()
+    {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if (!$user) {
+            return collect();
+        }
+
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
+
+        $query = \App\Models\Reservation::with(['customer', 'employee', 'services'])
+            ->whereIn('status', ['pending', 'arrived'])
+            ->orderBy('reservation_time', 'asc');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        if (!empty($this->search)) {
+            $query->whereHas('customer', function ($q) {
+                $q->where('name', 'like', '%' . $this->search . '%')
+                    ->orWhere('phone', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        return $query->get();
+    }
+
+    private function getProductsList()
+    {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if (!$user) {
+            return collect();
+        }
+
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
+
+        $query = Product::where('is_active', true)
+            ->where('name', 'like', '%' . $this->search . '%');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Hitung ringkasan shift untuk ditampilkan di modal closing.
+     */
+    public function getShiftSummary(): array
+    {
+        $shift = $this->getActiveShift();
+        if (!$shift) {
+            return [];
+        }
+
+        $paymentSummary = Payment::where('cashier_shift_id', $shift->id)
+            ->selectRaw('method, SUM(amount) as total, COUNT(DISTINCT transaction_id) as trx_count')
+            ->groupBy('method')
+            ->pluck('total', 'method')
+            ->toArray();
+
+        $transactionCount = Transaction::withoutGlobalScopes()
+            ->where('cashier_shift_id', $shift->id)
+            ->where('status', 'completed')
+            ->count();
+
+        $totalSales = Payment::where('cashier_shift_id', $shift->id)->sum('amount');
+        $cashIn     = $shift->cashMovements()->where('type', 'in')->sum('amount');
+        $cashOut    = $shift->cashMovements()->where('type', 'out')->sum('amount');
+
+        $methods = ['cash', 'qris', 'transfer', 'e_wallet', 'debit_card', 'credit_card'];
+        $perMethod = [];
+        foreach ($methods as $m) {
+            $perMethod[$m] = (float) ($paymentSummary[$m] ?? 0);
+        }
+
+        return [
+            'shift'             => $shift,
+            'per_method'        => $perMethod,
+            'total_sales'       => (float) $totalSales,
+            'transaction_count' => $transactionCount,
+            'cash_in'           => (float) $cashIn,
+            'cash_out'          => (float) $cashOut,
+            'expected_cash'     => $shift->calculateExpectedCash(),
+        ];
+    }
+
+    // =============================================
+    //  SHIFT MANAGEMENT
+    // =============================================
+
+    public function openShift()
+    {
+        if ($this->openingCash < 0) {
+            $this->addError('openingCash', 'Modal awal tidak boleh negatif.');
+            return;
+        }
+
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if (!$user) {
+            return;
+        }
+
+        // Cek tidak boleh punya lebih dari 1 shift open
+        $existingOpen = CashierShift::open()->byUser($user->id)->exists();
+        if ($existingOpen) {
+            $this->addError('openingCash', 'Anda sudah memiliki shift yang masih aktif.');
+            return;
+        }
+
+        CashierShift::create([
+            'user_id'      => $user->id,
+            'start_at'     => now(),
+            'opening_cash' => $this->openingCash,
+            'status'       => 'open',
+        ]);
+
+        $this->openingCash = 0;
+
+        $this->dispatch('shift-opened');
+    }
+
+    #[On('openCloseShiftFromLayout')]
+    public function openCloseShiftModal()
+    {
+        $this->showCloseShiftModal = true;
+        $this->actualCash = 0;
+        $this->closingNotes = '';
+    }
+
+    public function closeShift()
+    {
+        $shift = $this->getActiveShift();
+        if (!$shift) {
+            return;
+        }
+
+        if ($this->actualCash < 0) {
+            $this->addError('actualCash', 'Kas aktual tidak boleh negatif.');
+            return;
+        }
+
+        $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
+
+        $this->showCloseShiftModal = false;
+        $this->actualCash = 0;
+        $this->closingNotes = '';
+
+        // Dispatch event agar JS bisa menampilkan notifikasi atau redirect
+        $this->dispatch('shift-closed');
+    }
+
+    // =============================================
+    //  CASH MOVEMENT
+    // =============================================
+
+    #[On('openCashMovementFromLayout')]
+    public function openCashMovementModal()
+    {
+        $this->showCashMovementModal = true;
+        $this->cashMovementType = 'in';
+        $this->cashMovementAmount = 0;
+        $this->cashMovementReason = '';
+    }
+
+    public function saveCashMovement()
+    {
+        $shift = $this->getActiveShift();
+        if (!$shift) {
+            $this->addError('cashMovement', 'Tidak ada shift aktif.');
+            return;
+        }
+
+        if ($this->cashMovementAmount <= 0) {
+            $this->addError('cashMovement', 'Jumlah harus lebih dari 0.');
+            return;
+        }
+
+        if (empty($this->cashMovementReason)) {
+            $this->addError('cashMovement', 'Alasan wajib diisi.');
+            return;
+        }
+
+        CashMovement::create([
+            'cashier_shift_id' => $shift->id,
+            'user_id'          => Auth::id(),
+            'type'             => $this->cashMovementType,
+            'amount'           => $this->cashMovementAmount,
+            'reason'           => $this->cashMovementReason,
+        ]);
+
+        $this->showCashMovementModal = false;
+        $this->cashMovementAmount = 0;
+        $this->cashMovementReason = '';
+    }
+
+    // =============================================
+    //  CUSTOMER
+    // =============================================
 
     public function updatedCustomerSearch()
     {
@@ -152,7 +343,12 @@ class PosKasir extends Component
         $this->selectedCustomerId = null;
         $this->customerName = '';
         $this->customerSearch = '';
+        $this->customerPhone = '';
     }
+
+    // =============================================
+    //  RESERVASI
+    // =============================================
 
     public function approveReservation($id)
     {
@@ -180,11 +376,9 @@ class PosKasir extends Component
             return;
         }
 
-        // Tandai reservasi ini di memori agar bisa di-finish (completed) jika checkout
         $this->processedReservationId = $reservation->id;
-
         $this->cart = [];
-        
+
         if ($reservation->customer) {
             $this->selectCustomer($reservation->customer->id, $reservation->customer->name);
         }
@@ -198,16 +392,22 @@ class PosKasir extends Component
         $this->activeTab = 'service';
     }
 
+    // =============================================
+    //  CART
+    // =============================================
+
     public function addToCart($itemId, $itemType)
     {
         if ($itemType === 'service') {
             $item = Service::find($itemId);
-            if (!$item || !$item->is_active)
+            if (!$item || !$item->is_active) {
                 return;
+            }
         } else {
             $item = Product::find($itemId);
-            if (!$item || !$item->is_active || $item->stock <= 0)
+            if (!$item || !$item->is_active || $item->stock <= 0) {
                 return;
+            }
         }
 
         $cartKey = $itemType . '_' . $itemId;
@@ -215,7 +415,6 @@ class PosKasir extends Component
         if (isset($this->cart[$cartKey])) {
             $newQty = $this->cart[$cartKey]['quantity'] + 1;
 
-            // Cek stok produk saat increment
             if ($itemType === 'product' && $newQty > $item->stock) {
                 $this->addError("cart.{$cartKey}", 'Stok tidak mencukupi');
                 return;
@@ -225,10 +424,10 @@ class PosKasir extends Component
             $this->cart[$cartKey]['subtotal'] = $newQty * $item->price;
         } else {
             $this->cart[$cartKey] = [
-                'id' => $itemId,
-                'type' => $itemType,
-                'name' => $item->name,
-                'price' => $item->price,
+                'id'       => $itemId,
+                'type'     => $itemType,
+                'name'     => $item->name,
+                'price'    => $item->price,
                 'quantity' => 1,
                 'subtotal' => $item->price,
             ];
@@ -249,8 +448,9 @@ class PosKasir extends Component
             return;
         }
 
-        if (!isset($this->cart[$cartKey]))
+        if (!isset($this->cart[$cartKey])) {
             return;
+        }
 
         if ($this->cart[$cartKey]['type'] === 'product') {
             $product = Product::find($this->cart[$cartKey]['id']);
@@ -264,10 +464,22 @@ class PosKasir extends Component
         $this->cart[$cartKey]['subtotal'] = $qty * $this->cart[$cartKey]['price'];
     }
 
+    // =============================================
+    //  PROCESS TRANSACTION
+    // =============================================
+
     public function processTransaction()
     {
-        if (empty($this->cart))
+        if (empty($this->cart)) {
             return;
+        }
+
+        // Validasi shift aktif
+        $shift = $this->getActiveShift();
+        if (!$shift) {
+            $this->addError('general', 'Tidak ada shift aktif. Silakan buka shift terlebih dahulu.');
+            return;
+        }
 
         if ($this->paymentMethod === 'cash' && $this->paymentAmount < $this->total()) {
             $this->addError('paymentAmount', 'Uang pembayaran kurang');
@@ -275,7 +487,7 @@ class PosKasir extends Component
         }
 
         /** @var \App\Models\User|null $user */
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = Auth::user();
         if (!$user) {
             $this->addError('general', 'User tidak terautentikasi.');
             return;
@@ -283,7 +495,6 @@ class PosKasir extends Component
 
         $employee = $user->employee;
 
-        // Dapatkan branch_id: prioritas dari relasi employee -> branches pivot
         $branchId = $employee?->branch_id ?? $user->branches()->first()?->id;
 
         if (!$branchId) {
@@ -297,13 +508,11 @@ class PosKasir extends Component
             }
         }
 
-        // Pastikan Data Karyawan (employee_id) ada agar tidak melanggar Schema Database yang Not Null
         $employeeId = $employee?->id;
         if (!$employeeId) {
-            // Jika akun kasir belum ditautkan ke profil karyawan, pinjam profil karyawan pertama di cabang ini
             $fallbackEmployee = \App\Models\Employee::where('branch_id', $branchId)->first();
             $employeeId = $fallbackEmployee?->id;
-            
+
             if (!$employeeId) {
                 $this->addError('general', 'Tidak dapat memproses! Cabang ini belum memiliki satupun Data Karyawan/Kapster terdaftar.');
                 return;
@@ -313,56 +522,64 @@ class PosKasir extends Component
         DB::beginTransaction();
 
         try {
-            // 1. Tangani Customer (jika input manual dan belum ada di sistem)
+            // 1. Tangani Customer
             if (!empty($this->customerName) && !$this->selectedCustomerId) {
                 $customer = Customer::create([
-                    'name' => $this->customerName,
-                    'phone' => $this->customerSearch // Use search input as phone if manual
+                    'name'  => $this->customerName,
+                    'phone' => !empty($this->customerPhone) ? $this->customerPhone : null,
                 ]);
                 $this->selectedCustomerId = $customer->id;
             }
 
-            // 2. Buat Transaksi Induk
+            // 2. Buat Transaksi Induk (dengan link ke shift)
             $transaction = Transaction::create([
-                // invoice_number auto generated via model booted
-                'branch_id' => $branchId,
-                'customer_id' => $this->selectedCustomerId,
-                'employee_id' => $employeeId, // Kasir or Fallback Employee
+                'branch_id'        => $branchId,
+                'cashier_shift_id' => $shift->id,
+                'customer_id'      => $this->selectedCustomerId,
+                'employee_id'      => $employeeId,
                 'transaction_date' => now(),
-                'total_amount' => $this->total(),
-                'payment_method' => $this->paymentMethod,
-                'status' => 'completed',
-                'notes' => $this->discountAmount() > 0 ? "Diskon: Rp" . number_format($this->discountAmount()) : null,
+                'total_amount'     => $this->total(),
+                'discount_type'    => $this->discountValue > 0 ? $this->discountType : null,
+                'discount_value'   => $this->discountValue,
+                'discount_amount'  => $this->discountAmount(),
+                'payment_method'   => $this->paymentMethod,
+                'status'           => 'completed',
             ]);
 
             // 3. Simpan Item & Kurangi Stok
             foreach ($this->cart as $cartItem) {
                 TransactionItem::create([
                     'transaction_id' => $transaction->id,
-                    'item_type' => $cartItem['type'],
-                    'service_id' => $cartItem['type'] === 'service' ? $cartItem['id'] : null,
-                    'product_id' => $cartItem['type'] === 'product' ? $cartItem['id'] : null,
-                    'employee_id' => null, // Tidak ada tracking barber di POS kasir per requirement
-                    'quantity' => $cartItem['quantity'],
-                    'price' => $cartItem['price'],
-                    'subtotal' => $cartItem['subtotal'],
+                    'item_type'      => $cartItem['type'],
+                    'service_id'     => $cartItem['type'] === 'service' ? $cartItem['id'] : null,
+                    'product_id'     => $cartItem['type'] === 'product' ? $cartItem['id'] : null,
+                    'employee_id'    => null,
+                    'quantity'       => $cartItem['quantity'],
+                    'price'          => $cartItem['price'],
+                    'subtotal'       => $cartItem['subtotal'],
                 ]);
 
-                // Deduction Stok Produk
                 if ($cartItem['type'] === 'product') {
                     Product::where('id', $cartItem['id'])->decrement('stock', $cartItem['quantity']);
                 }
             }
 
+            // 4. Buat Payment record (link ke shift)
+            Payment::create([
+                'transaction_id'   => $transaction->id,
+                'cashier_shift_id' => $shift->id,
+                'method'           => $this->paymentMethod,
+                'amount'           => $this->total(),
+            ]);
+
             DB::commit();
 
-            // Otomatis ubah status Reservasinya jadi "Completed" dan sync layanan yang benar-benar dikerjakan
+            // Otomatis ubah status Reservasinya
             if ($this->processedReservationId) {
                 $reservation = \App\Models\Reservation::find($this->processedReservationId);
                 if ($reservation) {
                     $reservation->update(['status' => 'completed']);
 
-                    // Sync reservation_services dengan layanan yang benar-benar dikerjakan di POS
                     $serviceIds = collect($this->cart)
                         ->filter(fn($item) => $item['type'] === 'service')
                         ->pluck('id')
@@ -380,9 +597,9 @@ class PosKasir extends Component
             $this->clearCustomer();
             $this->paymentAmount = 0;
             $this->discountValue = 0;
+            $this->discountType = 'nominal';
             $this->processedReservationId = null;
 
-            // Peringatkan Alpine/Browser untuk membuka modal
             $this->dispatch('transaction-completed');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -390,11 +607,16 @@ class PosKasir extends Component
         }
     }
 
+    // =============================================
+    //  RENDER
+    // =============================================
+
     public function render()
     {
         return view('livewire.pos-kasir', [
             'reservationsData' => $this->getReservationsList(),
-            'productsData' => $this->getProductsList()
+            'productsData'     => $this->getProductsList(),
+            'shiftSummary'     => $this->showCloseShiftModal ? $this->getShiftSummary() : [],
         ]);
     }
 }

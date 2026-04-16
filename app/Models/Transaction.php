@@ -16,16 +16,22 @@ class Transaction extends Model
         'customer_id',
         'employee_id',
         'branch_id',
+        'cashier_shift_id',
         'transaction_date',
         'total_amount',
+        'discount_type',
+        'discount_value',
+        'discount_amount',
         'payment_method',
         'status',
         'notes',
     ];
 
     protected $casts = [
-        'transaction_date' => 'datetime',
-        'total_amount'     => 'decimal:2',
+        'transaction_date'  => 'datetime',
+        'total_amount'      => 'decimal:2',
+        'discount_value'    => 'decimal:2',
+        'discount_amount'   => 'decimal:2',
     ];
 
     protected static function booted(): void
@@ -47,6 +53,7 @@ class Transaction extends Model
         $lastTransaction = self::withoutGlobalScope(BranchScope::class)
             ->whereDate('created_at', today())
             ->orderByDesc('id')
+            ->lockForUpdate()
             ->first();
 
         $sequence = 1;
@@ -72,9 +79,19 @@ class Transaction extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public function cashierShift()
+    {
+        return $this->belongsTo(CashierShift::class);
+    }
+
     public function items()
     {
         return $this->hasMany(TransactionItem::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 
     public function recalculateTotal(): void
