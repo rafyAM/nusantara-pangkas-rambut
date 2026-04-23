@@ -19,6 +19,7 @@ class Employee extends Model
         'email',
         'position',
         'is_active',
+        'photo',
     ];
 
     protected $casts = [

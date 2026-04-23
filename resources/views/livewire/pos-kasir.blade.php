@@ -474,7 +474,7 @@
                     <div class="grid grid-cols-2 gap-3 text-gray-600">
                         <div>
                             <span class="text-xs text-gray-400">Mulai</span>
-                            <p class="font-medium text-gray-900">{{ $shift->start_at->timezone('Asia/Jakarta')->format('d/m/Y H:i') }}</p>
+                            <p class="font-medium text-gray-900">{{ $shift->start_at->timezone(config('app.timezone'))->format('d/m/Y H:i') }}</p>
                         </div>
                         <div>
                             <span class="text-xs text-gray-400">Durasi</span>

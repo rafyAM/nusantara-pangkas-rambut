@@ -30,7 +30,7 @@ class ReservationReminder extends Notification
         return (new WebPushMessage)
             ->title('Waktunya Cukur!')
             ->icon('/favicon.ico')
-            ->body("Halo {$notifiable->name}, reservasi potong rambutmu akan dimulai dalam 20 menit (Jam {$time}). Segera siap-siap ke Pangkas Nusantara ya!")
+            ->body("Halo {$notifiable->name}, reservasi potong rambutmu akan dimulai dalam 5 menit (Jam {$time}). Segera siap-siap ke Pangkas Nusantara ya!")
             ->action('Cek Jadwal', url('/dashboard'));
     }
 }

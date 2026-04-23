@@ -11,6 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class CustomerResource extends Resource
 {
@@ -55,6 +56,13 @@ class CustomerResource extends Resource
                         Forms\Components\Textarea::make('address')
                             ->label('Alamat')
                             ->rows(3)
+                            ->columnSpanFull(),
+                        Forms\Components\FileUpload::make('photo')
+                            ->label('Foto Profil')
+                            ->image()
+                            ->directory('customers')
+                            ->imageResizeMode('cover')
+                            ->imageCropAspectRatio('1:1')
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -139,9 +147,35 @@ class CustomerResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+
+        $user = Auth::user();
+
+        // Super admin melihat semua customer
+        if ($user && $user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        // Admin & kasir hanya melihat customer yang pernah bertransaksi di cabang mereka
+        if ($user) {
+            $branchIds = $user->branches()->pluck('branches.id')
+                ->push($user->employee?->branch_id)
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($branchIds->isNotEmpty()) {
+                $query->whereHas('transactions', function (Builder $q) use ($branchIds) {
+                    $q->whereIn('branch_id', $branchIds);
+                })->orWhereHas('reservations', function (Builder $q) use ($branchIds) {
+                    $q->whereIn('branch_id', $branchIds);
+                });
+            }
+        }
+
+        return $query;
     }
 }

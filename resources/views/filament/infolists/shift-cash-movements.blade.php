@@ -18,7 +18,7 @@
                     </span>
                     <div>
                         <p class="text-sm text-gray-700">{{ $movement->reason }}</p>
-                        <p class="text-xs text-gray-400">{{ $movement->created_at->timezone('Asia/Jakarta')->format('d/m/Y H:i') }}</p>
+                        <p class="text-xs text-gray-400">{{ $movement->created_at->timezone(config('app.timezone'))->format('d/m/Y H:i') }}</p>
                     </div>
                 </div>
                 <span class="font-semibold {{ $movement->type === 'in' ? 'text-green-700' : 'text-red-700' }}">

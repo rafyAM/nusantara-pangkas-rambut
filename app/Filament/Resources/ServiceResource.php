@@ -51,6 +51,13 @@ class ServiceResource extends Resource
                             ->label('Deskripsi')
                             ->rows(3)
                             ->columnSpanFull(),
+                        Forms\Components\FileUpload::make('image')
+                            ->label('Foto Layanan')
+                            ->image()
+                            ->directory('services')
+                            ->imageResizeMode('cover')
+                            ->imageCropAspectRatio('16:9')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
             ]);
@@ -60,6 +67,10 @@ class ServiceResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('image')
+                    ->label('')
+                    ->size(40)
+                    ->circular(),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Layanan')
                     ->searchable()

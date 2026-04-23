@@ -97,7 +97,8 @@ class BranchResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            BranchResource\RelationManagers\SchedulesRelationManager::class,
+            BranchResource\RelationManagers\ServicesRelationManager::class,
         ];
     }
 

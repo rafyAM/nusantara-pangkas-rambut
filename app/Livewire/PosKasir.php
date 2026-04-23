@@ -519,6 +519,32 @@ class PosKasir extends Component
             }
         }
 
+        // Validasi ulang harga & stok dari DB (mencegah manipulasi state Livewire)
+        foreach ($this->cart as $cartKey => $cartItem) {
+            if ($cartItem['type'] === 'service') {
+                $dbItem = Service::find($cartItem['id']);
+                if (!$dbItem || !$dbItem->is_active) {
+                    $this->addError('general', "Layanan '{$cartItem['name']}' tidak tersedia.");
+                    return;
+                }
+                // Sinkronkan harga dari DB
+                $this->cart[$cartKey]['price'] = (float) $dbItem->price;
+                $this->cart[$cartKey]['subtotal'] = (float) $dbItem->price * $cartItem['quantity'];
+            } else {
+                $dbItem = Product::find($cartItem['id']);
+                if (!$dbItem || !$dbItem->is_active) {
+                    $this->addError('general', "Produk '{$cartItem['name']}' tidak tersedia.");
+                    return;
+                }
+                if ($dbItem->stock < $cartItem['quantity']) {
+                    $this->addError('general', "Stok '{$cartItem['name']}' tidak mencukupi (tersisa {$dbItem->stock}).");
+                    return;
+                }
+                $this->cart[$cartKey]['price'] = (float) $dbItem->price;
+                $this->cart[$cartKey]['subtotal'] = (float) $dbItem->price * $cartItem['quantity'];
+            }
+        }
+
         DB::beginTransaction();
 
         try {
@@ -573,6 +599,14 @@ class PosKasir extends Component
             ]);
 
             DB::commit();
+
+            // Tambahkan loyalty points ke customer (1 poin per Rp 1.000 transaksi)
+            if ($this->selectedCustomerId) {
+                $earnedPoints = (int) floor($this->total() / 1000);
+                if ($earnedPoints > 0) {
+                    Customer::find($this->selectedCustomerId)?->addLoyaltyPoints($earnedPoints);
+                }
+            }
 
             // Otomatis ubah status Reservasinya
             if ($this->processedReservationId) {

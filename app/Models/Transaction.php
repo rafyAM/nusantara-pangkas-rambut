@@ -40,17 +40,35 @@ class Transaction extends Model
 
         static::creating(function (Transaction $transaction) {
             if (empty($transaction->invoice_number)) {
-                $transaction->invoice_number = self::generateInvoiceNumber();
+                $transaction->invoice_number = self::generateInvoiceNumber($transaction->branch_id);
+            }
+        });
+
+        // Kembalikan stok produk saat transaksi dibatalkan
+        static::updated(function (Transaction $transaction) {
+            if ($transaction->wasChanged('status') && $transaction->status === 'cancelled') {
+                foreach ($transaction->items()->where('item_type', 'product')->get() as $item) {
+                    Product::where('id', $item->product_id)->increment('stock', $item->quantity);
+                }
             }
         });
     }
 
-    public static function generateInvoiceNumber(): string
+    public static function generateInvoiceNumber(?int $branchId = null): string
     {
-        $prefix = 'INV';
-        $date   = now()->format('Ymd');
+        $date = now()->format('Ymd');
+
+        // Ambil kode cabang (2-3 huruf kapital dari slug/nama)
+        $branchCode = 'GEN';
+        if ($branchId) {
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                $branchCode = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $branch->slug ?? $branch->name), 0, 3));
+            }
+        }
 
         $lastTransaction = self::withoutGlobalScope(BranchScope::class)
+            ->where('branch_id', $branchId)
             ->whereDate('created_at', today())
             ->orderByDesc('id')
             ->lockForUpdate()
@@ -61,7 +79,7 @@ class Transaction extends Model
             $sequence = (int) $matches[1] + 1;
         }
 
-        return sprintf('%s-%s-%04d', $prefix, $date, $sequence);
+        return sprintf('INV-%s-%s-%04d', $branchCode, $date, $sequence);
     }
 
     public function customer()

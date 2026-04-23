@@ -36,7 +36,7 @@
                                 <span class="w-2 h-2 mr-1.5 rounded-full bg-green-500 animate-pulse"></span>
                                 Shift Aktif
                             </span>
-                            <span class="text-gray-400 text-xs">sejak {{ $currentShift->start_at->timezone('Asia/Jakarta')->format('H:i') }}</span>
+                            <span class="text-gray-400 text-xs">sejak {{ $currentShift->start_at->timezone(config('app.timezone'))->format('H:i') }}</span>
                             <button onclick="Livewire.dispatch('openCashMovementFromLayout')"
                                 class="px-3 py-1 text-xs font-medium rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition">
                                 Cash In/Out
