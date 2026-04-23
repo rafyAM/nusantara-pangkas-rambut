@@ -16,6 +16,7 @@ class Reservation extends Model
         'branch_id',
         'reservation_time',
         'status',
+        'queue_number',
         'notes',
     ];
 
@@ -23,8 +24,22 @@ class Reservation extends Model
         'reservation_time' => 'datetime',
     ];
 
-    protected static function booted(): void {
+    protected static function booted(): void
+    {
         static::addGlobalScope(new BranchScope());
+
+        // Auto-generate nomor antrian per hari per cabang
+        static::creating(function (Reservation $reservation) {
+            if (empty($reservation->queue_number)) {
+                $count = self::withoutGlobalScope(BranchScope::class)
+                    ->where('branch_id', $reservation->branch_id)
+                    ->whereDate('reservation_time', \Carbon\Carbon::parse($reservation->reservation_time)->toDateString())
+                    ->count();
+
+                $branchCode = \App\Models\Branch::find($reservation->branch_id)?->slug ?? 'Q';
+                $reservation->queue_number = strtoupper(substr($branchCode, 0, 1)) . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+            }
+        });
     }
 
     public function customer()

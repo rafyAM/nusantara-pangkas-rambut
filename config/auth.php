@@ -45,6 +45,12 @@ return [
             'driver' => 'session',
             'provider' => 'customers',
         ],
+
+        // Guard untuk Sanctum API (mobile app) — menggunakan model Customer
+        'sanctum' => [
+            'driver'   => 'sanctum',
+            'provider' => 'customers',
+        ],
     ],
 
     /*

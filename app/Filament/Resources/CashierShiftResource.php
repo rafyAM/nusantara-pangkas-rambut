@@ -62,13 +62,13 @@ class CashierShiftResource extends Resource
                 Tables\Columns\TextColumn::make('start_at')
                     ->label('Mulai')
                     ->dateTime('d/m/Y H:i')
-                    ->timezone('Asia/Jakarta')
+                    ->timezone(config('app.timezone'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('end_at')
                     ->label('Selesai')
                     ->dateTime('d/m/Y H:i')
-                    ->timezone('Asia/Jakarta')
+                    ->timezone(config('app.timezone'))
                     ->placeholder('-')
                     ->sortable(),
 
@@ -156,11 +156,11 @@ class CashierShiftResource extends Resource
                         Infolists\Components\TextEntry::make('start_at')
                             ->label('Mulai')
                             ->dateTime('d/m/Y H:i')
-                            ->timezone('Asia/Jakarta'),
+                            ->timezone(config('app.timezone')),
                         Infolists\Components\TextEntry::make('end_at')
                             ->label('Selesai')
                             ->dateTime('d/m/Y H:i')
-                            ->timezone('Asia/Jakarta')
+                            ->timezone(config('app.timezone'))
                             ->placeholder('-'),
                         Infolists\Components\TextEntry::make('status')
                             ->label('Status')

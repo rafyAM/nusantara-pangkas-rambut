@@ -15,7 +15,7 @@ Route::get('/dashboard', [CustomerDashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::post('/reservations', [CustomerDashboardController::class, 'store'])
-    ->middleware(['auth:customer', 'verified'])
+    ->middleware(['auth:customer', 'verified', 'throttle:5,1'])
     ->name('reservations.store');
 
 Route::post('/push/subscribe', [PushSubscriptionController::class, 'subscribe'])

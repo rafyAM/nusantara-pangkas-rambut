@@ -26,7 +26,7 @@
                 @foreach($transactions as $trx)
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 pr-4 font-mono text-xs text-indigo-600">{{ $trx->invoice_number }}</td>
-                        <td class="py-2 pr-4 text-gray-600 text-xs">{{ $trx->transaction_date->timezone('Asia/Jakarta')->format('H:i') }}</td>
+                        <td class="py-2 pr-4 text-gray-600 text-xs">{{ $trx->transaction_date->timezone(config('app.timezone'))->format('H:i') }}</td>
                         <td class="py-2 pr-4 text-gray-700">{{ $trx->customer?->name ?? 'Umum' }}</td>
                         <td class="py-2 pr-4 text-gray-700">{{ $trx->employee?->name ?? '-' }}</td>
                         <td class="py-2 pr-4">

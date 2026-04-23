@@ -92,6 +92,13 @@ class EmployeeResource extends Resource
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
+                        Forms\Components\FileUpload::make('photo')
+                            ->label('Foto Profil')
+                            ->image()
+                            ->directory('employees')
+                            ->imageResizeMode('cover')
+                            ->imageCropAspectRatio('1:1')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
             ]);
@@ -101,6 +108,11 @@ class EmployeeResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('photo')
+                    ->label('')
+                    ->size(40)
+                    ->circular()
+                    ->defaultImageUrl(fn (): string => 'https://ui-avatars.com/api/?name=?&color=7F9CF5&background=EBF4FF'),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama')
                     ->searchable()

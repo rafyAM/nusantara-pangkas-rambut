@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(composer require *)",
+      "Bash(where composer *)",
+      "Bash(php -r \"echo PHP_BINARY;\")",
+      "Bash(php -m)",
+      "PowerShell(Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser)"
+    ]
+  }
+}

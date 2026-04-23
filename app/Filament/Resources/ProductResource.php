@@ -47,6 +47,17 @@ class ProductResource extends Resource
                     ->required(),
                 Forms\Components\Toggle::make('is_active')
                     ->default(true),
+                Forms\Components\Textarea::make('description')
+                    ->label('Deskripsi')
+                    ->rows(2)
+                    ->columnSpanFull(),
+                Forms\Components\FileUpload::make('image')
+                    ->label('Foto Produk')
+                    ->image()
+                    ->directory('products')
+                    ->imageResizeMode('cover')
+                    ->imageCropAspectRatio('1:1')
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -54,6 +65,10 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('image')
+                    ->label('')
+                    ->size(40)
+                    ->circular(),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
