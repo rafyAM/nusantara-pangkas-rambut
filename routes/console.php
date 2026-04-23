@@ -15,7 +15,7 @@ Artisan::command('inspire', function () {
 
 // Auto cancel reservasi jika telat >10 menit (dari jam booking belum di-approve kasir) 
 Schedule::call(function () {
-    $threshold = Carbon::now()->subMinutes(10); // memberi kelonggaran 10 menit
+    $threshold = Carbon::now()->subMinutes(5); // memberi kelonggaran 10 menit
 
     $expiredReservations = Reservation::with('customer')
         ->where('status', 'pending')
