@@ -201,3 +201,56 @@ test('discount type resets to nominal after transaction is processed', function 
     $component->assertSet('discountValue', 0);
     $component->assertSet('cart', []);
 });
+
+// --- Cashier Shift & Cash Movement Feature Tests ---
+
+test('cashier cannot open a new shift if one is already active', function () {
+    ['user' => $user] = setupCashierEnv(); // Creates an open shift
+    $this->actingAs($user);
+
+    Livewire::test(PosKasir::class)
+        ->set('openingCash', 100000)
+        ->call('openShift')
+        ->assertHasErrors(['openingCash' => 'Anda sudah memiliki shift yang masih aktif.']);
+});
+
+test('cashier can close an active shift', function () {
+    ['user' => $user] = setupCashierEnv();
+    $this->actingAs($user);
+
+    Livewire::test(PosKasir::class)
+        ->call('openCloseShiftModal')
+        ->assertSet('showCloseShiftModal', true)
+        ->set('actualCash', 50000)
+        ->set('closingNotes', 'All good')
+        ->call('closeShift')
+        ->assertSet('showCloseShiftModal', false)
+        ->assertDispatched('shift-closed');
+
+    $shift = CashierShift::where('user_id', $user->id)->latest()->first();
+    expect($shift->status)->toBe('closed');
+    expect((float) $shift->actual_cash)->toBe(50000.0);
+    expect($shift->notes)->toBe('All good');
+});
+
+test('cashier can add cash movement in', function () {
+    ['user' => $user] = setupCashierEnv();
+    $this->actingAs($user);
+
+    Livewire::test(PosKasir::class)
+        ->call('openCashMovementModal')
+        ->assertSet('showCashMovementModal', true)
+        ->set('cashMovementType', 'in')
+        ->set('cashMovementAmount', 150000)
+        ->set('cashMovementReason', 'Top up change')
+        ->call('saveCashMovement')
+        ->assertSet('showCashMovementModal', false);
+
+    $shift = CashierShift::where('user_id', $user->id)->latest()->first();
+    $movement = $shift->cashMovements()->first();
+
+    expect($movement)->not->toBeNull();
+    expect($movement->type)->toBe('in');
+    expect((float) $movement->amount)->toBe(150000.0);
+    expect($movement->reason)->toBe('Top up change');
+});
