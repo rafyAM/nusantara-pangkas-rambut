@@ -9,7 +9,8 @@ use Illuminate\Support\Str;
 test('it generates correct invoice number', function () {
     $transaction = Transaction::factory()->create();
 
-    expect($transaction->invoice_number)->toStartWith('INV-'.now()->format('Ymd'));
+    expect($transaction->invoice_number)->toStartWith('INV-');
+    expect($transaction->invoice_number)->toContain(now()->format('Ymd'));
 });
 
 test('it calculates subtotal correctly', function () {
@@ -45,15 +46,17 @@ test('it calculates subtotal correctly', function () {
 // --- Invoice Number Uniqueness (B1) ---
 
 test('invoice numbers are unique when multiple transactions are created sequentially', function () {
-    $transactions = Transaction::factory()->count(3)->create();
+    $branch = \App\Models\Branch::factory()->create();
+    $transactions = Transaction::factory()->count(3)->create(['branch_id' => $branch->id]);
     $invoiceNumbers = $transactions->pluck('invoice_number');
 
     expect($invoiceNumbers->unique()->count())->toBe(3);
 });
 
 test('invoice number sequence increments correctly within the same day', function () {
-    $first  = Transaction::factory()->create();
-    $second = Transaction::factory()->create();
+    $branch = \App\Models\Branch::factory()->create();
+    $first  = Transaction::factory()->create(['branch_id' => $branch->id]);
+    $second = Transaction::factory()->create(['branch_id' => $branch->id]);
 
     preg_match('/(\d{4})$/', $first->invoice_number, $m1);
     preg_match('/(\d{4})$/', $second->invoice_number, $m2);
