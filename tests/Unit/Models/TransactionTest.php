@@ -16,7 +16,7 @@ test('it generates correct invoice number', function () {
 test('it calculates subtotal correctly', function () {
     $transaction = Transaction::factory()->create([
         'total_amount' => 0
-    ]);
+    ]); 
 
     $service1 = Service::factory()->create(['price' => 50000]);
     $service2 = Service::factory()->create(['price' => 20000]);
