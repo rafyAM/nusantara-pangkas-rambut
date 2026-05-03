@@ -54,32 +54,49 @@
         </div>
     @endif
 
+    {{-- MOBILE CART TOGGLE BUTTON --}}
+    <div class="fixed bottom-4 right-4 z-30 lg:hidden" x-data="{ show: false }">
+        <button @click="$dispatch('toggle-cart')" class="relative flex items-center justify-center w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            @if(count($cart) > 0)
+                <span class="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full">{{ count($cart) }}</span>
+            @endif
+        </button>
+    </div>
+
     {{-- MAIN POS LAYOUT --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-6rem)]">
+    <div
+        x-data="{ cartOpen: false }"
+        @toggle-cart.window="cartOpen = !cartOpen"
+        class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 lg:h-[calc(100vh-6rem)]">
 
         {{-- Kolom Kiri: Katalog (60%) --}}
-        <div class="lg:col-span-7 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-full overflow-hidden print:hidden">
+        <div class="lg:col-span-7 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden print:hidden lg:h-full"
+             :class="cartOpen ? 'hidden lg:flex' : 'flex'">
 
             {{-- Header & Tabs --}}
-            <div class="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                <div class="flex space-x-2">
-                    <button wire:click="$set('activeTab', 'service')"
-                        class="px-4 py-2 text-sm font-medium rounded-md transition {{ $activeTab === 'service' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">
-                        Layanan
-                    </button>
-                    <button wire:click="$set('activeTab', 'product')"
-                        class="px-4 py-2 text-sm font-medium rounded-md transition {{ $activeTab === 'product' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">
-                        Produk
-                    </button>
-                    <button wire:click="$set('activeTab', 'reservation')"
-                        class="px-4 py-2 text-sm font-medium rounded-md transition {{ $activeTab === 'reservation' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">
-                        Reservation
-                    </button>
+            <div class="p-3 border-b border-gray-200 bg-gray-50 space-y-2">
+                {{-- Tabs Row --}}
+                <div class="flex items-center gap-2">
+                    <div class="flex gap-1 flex-1 min-w-0">
+                        <button wire:click="$set('activeTab', 'service')"
+                            class="flex-1 px-2 py-2 text-xs sm:text-sm font-medium rounded-md transition truncate {{ $activeTab === 'service' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">
+                            Layanan
+                        </button>
+                        <button wire:click="$set('activeTab', 'product')"
+                            class="flex-1 px-2 py-2 text-xs sm:text-sm font-medium rounded-md transition truncate {{ $activeTab === 'product' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">
+                            Produk
+                        </button>
+                        <button wire:click="$set('activeTab', 'reservation')"
+                            class="flex-1 px-2 py-2 text-xs sm:text-sm font-medium rounded-md transition truncate {{ $activeTab === 'reservation' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50' }}">
+                            Reservasi
+                        </button>
+                    </div>
                 </div>
-
-                <div class="relative w-64">
+                {{-- Search Row --}}
+                <div class="relative">
                     <input wire:model.live.debounce.300ms="search" type="text" placeholder="Cari item..."
-                        class="w-full pl-10 pr-4 py-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        class="w-full pl-9 pr-4 py-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
@@ -89,14 +106,14 @@
             </div>
 
             {{-- Katalog Item List --}}
-            <div class="flex-1 overflow-y-auto p-4 bg-gray-50/50 relative">
+            <div class="flex-1 overflow-y-auto p-3 sm:p-4 bg-gray-50/50 relative" style="max-height: calc(100vh - 12rem);">
 
                 <div wire:loading wire:target="search, activeTab" class="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                 </div>
 
                 @if($activeTab === 'service')
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-3">
                         @forelse($this->services as $service)
                             <div class="bg-white border border-gray-200 rounded-lg p-4 flex flex-col justify-between hover:border-indigo-500 hover:shadow-sm transition cursor-pointer"
                                  wire:click="addToCart({{ $service->id }}, 'service')">
@@ -181,7 +198,7 @@
                         @endforelse
                     </div>
                 @else
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-3">
                         @forelse($productsData as $product)
                             @php $isDisabled = $product->stock <= 0; @endphp
                             <div class="bg-white border rounded-lg p-4 flex flex-col justify-between transition {{ $isDisabled ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-200 hover:border-indigo-500 hover:shadow-sm cursor-pointer' }}"
@@ -211,7 +228,13 @@
         </div>
 
         {{-- Kolom Kanan: Cart & Checkout (40%) --}}
-        <div class="lg:col-span-5 flex flex-col h-full space-y-4 print:hidden">
+        <div class="lg:col-span-5 flex flex-col space-y-3 lg:space-y-4 lg:h-full print:hidden"
+             :class="cartOpen ? 'flex' : 'hidden lg:flex'">
+            {{-- Mobile Back to Catalog Button --}}
+            <button @click="$dispatch('toggle-cart')" class="lg:hidden flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Kembali ke Katalog
+            </button>
 
             {{-- Error General --}}
             @error('general')
@@ -264,10 +287,10 @@
             </div>
 
             {{-- Cart Items --}}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden lg:flex-1" style="min-height: 280px;">
                 <h2 class="text-lg font-medium text-gray-900 p-4 border-b border-gray-200">Keranjang Belanja</h2>
 
-                <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <div class="overflow-y-auto p-3 sm:p-4 space-y-3 lg:flex-1" style="max-height: 280px;">
                     @forelse($cart as $key => $item)
                         <div class="flex items-center justify-between border-b border-gray-100 pb-4 last:border-0 last:pb-0">
                             <div class="flex-1 min-w-0 pr-4">
