@@ -61,7 +61,7 @@ test('it validates time correctly to prevent conflict (kapster collision)', func
         ->where('reservation_time', $bookingTime)
         ->whereIn('status', ['pending', 'arrived'])
         ->exists();
-
+    
     expect($isConflict)->toBeTrue();
 });
 
@@ -69,7 +69,7 @@ test('it simulates auto cancel when late threshold passed', function () {
     $reservation = Reservation::factory()->create([
         'reservation_time' => now()->subMinutes(15), // Telat 15 menit
         'status' => 'pending'
-    ]);
+    ]);   
 
     $threshold = now()->subMinutes(10); // Toleransi 10 menit
 
