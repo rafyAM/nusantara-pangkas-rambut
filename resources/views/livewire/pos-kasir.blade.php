@@ -41,8 +41,7 @@
                 }"> 
                     <label class="block text-sm font-medium text-gray-700 mb-2 text-left">Modal Awal (Rp)</label>
                     <input type="text" x-model="nilaiTampil" @input="formatRupiah()" autofocus
-                        class="w-full text-2xl font-bold text-center p-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="0">
+                        class="w-full text-2xl font-bold text-center p-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
 
                 <button wire:click="openShift" wire:loading.attr="disabled"
@@ -315,7 +314,7 @@
                                 </select>
                             </div>
                             <div class="flex items-center space-x-2">
-                                <input wire:model.live.debounce.500ms="discountValue" type="number" min="0" class="w-24 py-1 px-2 text-sm text-right border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
+                                <input wire:model.live.debounce.500ms="discountValue" type="number" min="0" class="w-24 py-1 px-2 text-sm text-right border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                                 @if($this->discountAmount > 0)
                                     <span class="font-medium text-red-600">- Rp {{ number_format($this->discountAmount, 0, ',', '.') }}</span>
                                 @endif
@@ -342,10 +341,10 @@
                         @if($paymentMethod === 'cash')
                             <div class="mt-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Bayar Tunai</label>
-                                <input wire:model.live.debounce.300ms="paymentAmount" type="number" class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
+                                <input wire:model.live.debounce.300ms="paymentAmount" type="number" placeholder="Contoh: 100000" class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" >
                                 @error('paymentAmount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
 
-                                @if($paymentAmount >= $this->total && $this->total > 0)
+                                @if(!is_null($paymentAmount) && $paymentAmount >= $this->total && $this->total > 0)
                                     <div class="mt-2 flex justify-between items-center p-2 bg-green-50 rounded text-green-800">
                                         <span class="text-sm font-medium">Kembalian:</span>
                                         <span class="text-lg font-bold">Rp {{ number_format($this->changeAmount, 0, ',', '.') }}</span>
@@ -428,7 +427,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp)</label>
                         <input wire:model="cashMovementAmount" type="number" min="0" step="1000"
-                            class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
+                            class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" >
                     </div>
 
                     <div>
@@ -537,7 +536,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Kas Aktual (hitung fisik)</label>
                                 <input wire:model.live="actualCash" type="number" step="1000"
-                                    class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
+                                    class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                                 @error('actualCash') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             @if($actualCash > 0)

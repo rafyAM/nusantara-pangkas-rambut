@@ -39,7 +39,7 @@ class PosKasir extends Component
     public string $discountType = 'nominal';
     public float $discountValue = 0;
     public string $paymentMethod = 'cash';
-    public float $paymentAmount = 0;
+    public ?float $paymentAmount = null;
 
     // --- Transaksi Selesai ---
     public ?int $completedTransactionId = null;
@@ -105,7 +105,10 @@ class PosKasir extends Component
         if ($this->paymentMethod !== 'cash') {
             return 0;
         }
-        return max(0, $this->paymentAmount - $this->total());
+
+        $paymentAmount = $this->paymentAmount ?? 0;
+
+        return max(0, $paymentAmount - $this->total());
     }
 
     // =============================================
@@ -629,7 +632,7 @@ class PosKasir extends Component
             // Reset UI
             $this->cart = [];
             $this->clearCustomer();
-            $this->paymentAmount = 0;
+            $this->paymentAmount = null;
             $this->discountValue = 0;
             $this->discountType = 'nominal';
             $this->processedReservationId = null;
