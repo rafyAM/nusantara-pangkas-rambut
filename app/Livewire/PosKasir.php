@@ -39,7 +39,7 @@ class PosKasir extends Component
     public string $discountType = 'nominal';
     public float $discountValue = 0;
     public string $paymentMethod = 'cash';
-    public float $paymentAmount = 0;
+    public ?float $paymentAmount = null;
 
     // --- Transaksi Selesai ---
     public ?int $completedTransactionId = null;
@@ -57,9 +57,49 @@ class PosKasir extends Component
     public float $cashMovementAmount = 0;
     public string $cashMovementReason = '';
 
+    // --- Handover Shift ---
+    public ?array $previousShiftInfo = null;
+
     // =============================================
-    //  COMPUTED PROPERTIES
+    //  LIFECYCLE & COMPUTED PROPERTIES
     // =============================================
+
+    public function mount()
+    {
+        $this->loadPreviousShiftHandover();
+    }
+
+    protected function loadPreviousShiftHandover()
+    {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if (!$user) return;
+
+        // Jangan set jika sudah ada shift aktif
+        if ($this->getActiveShift()) return;
+
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
+        if (!$branchId && $user->hasRole('super_admin')) {
+            $branchId = \App\Models\Branch::first()?->id;
+        }
+
+        if ($branchId) {
+            $lastShift = CashierShift::withoutGlobalScopes()
+                ->where('branch_id', $branchId)
+                ->where('status', 'closed')
+                ->latest('end_at')
+                ->first();
+
+            if ($lastShift && $lastShift->actual_cash > 0) {
+                $this->openingCash = (float) $lastShift->actual_cash;
+                $this->previousShiftInfo = [
+                    'user'        => $lastShift->user->name ?? 'Kasir',
+                    'end_at'      => $lastShift->end_at->timezone(config('app.timezone'))->format('d/m/Y H:i'),
+                    'actual_cash' => (float) $lastShift->actual_cash,
+                ];
+            }
+        }
+    }
 
     public function getActiveShift()
     {
@@ -67,7 +107,12 @@ class PosKasir extends Component
         if (!$user) {
             return null;
         }
-        return CashierShift::open()->byUser($user->id)->latest()->first();
+        // withoutGlobalScopes: query sudah di-scope by user_id sehingga aman
+        return CashierShift::withoutGlobalScopes()
+            ->open()
+            ->byUser($user->id)
+            ->latest()
+            ->first();
     }
 
     #[Computed]
@@ -105,7 +150,10 @@ class PosKasir extends Component
         if ($this->paymentMethod !== 'cash') {
             return 0;
         }
-        return max(0, $this->paymentAmount - $this->total());
+
+        $paymentAmount = $this->paymentAmount ?? 0;
+
+        return max(0, $paymentAmount - $this->total());
     }
 
     // =============================================
@@ -219,8 +267,25 @@ class PosKasir extends Component
             return;
         }
 
+        // Tentukan branch_id dari konteks user
+        $branchId = $user->employee?->branch_id
+            ?? $user->branches()->first()?->id;
+
+        if (!$branchId && $user->hasRole('super_admin')) {
+            $branchId = \App\Models\Branch::first()?->id;
+        }
+
+        if (!$branchId) {
+            $this->addError('openingCash', 'Akun ini belum terhubung ke cabang manapun.');
+            return;
+        }
+
         // Cek tidak boleh punya lebih dari 1 shift open
-        $existingOpen = CashierShift::open()->byUser($user->id)->exists();
+        $existingOpen = CashierShift::withoutGlobalScopes()
+            ->open()
+            ->byUser($user->id)
+            ->exists();
+
         if ($existingOpen) {
             $this->addError('openingCash', 'Anda sudah memiliki shift yang masih aktif.');
             return;
@@ -228,6 +293,7 @@ class PosKasir extends Component
 
         CashierShift::create([
             'user_id'      => $user->id,
+            'branch_id'    => $branchId,
             'start_at'     => now(),
             'opening_cash' => $this->openingCash,
             'status'       => 'open',
@@ -266,6 +332,28 @@ class PosKasir extends Component
 
         // Dispatch event agar JS bisa menampilkan notifikasi atau redirect
         $this->dispatch('shift-closed');
+    }
+
+    public function changeShift()
+    {
+        $shift = $this->getActiveShift();
+        if (!$shift) {
+            return;
+        }
+
+        if ($this->actualCash < 0) {
+            $this->addError('actualCash', 'Kas aktual tidak boleh negatif.');
+            return;
+        }
+
+        $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
+
+        // Logout dan arahkan ke halaman login
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        return redirect('/admin/login');
     }
 
     // =============================================
@@ -629,7 +717,7 @@ class PosKasir extends Component
             // Reset UI
             $this->cart = [];
             $this->clearCustomer();
-            $this->paymentAmount = 0;
+            $this->paymentAmount = null;
             $this->discountValue = 0;
             $this->discountType = 'nominal';
             $this->processedReservationId = null;

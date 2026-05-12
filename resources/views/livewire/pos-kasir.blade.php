@@ -2,15 +2,32 @@
 
     {{-- OPEN OVERLAY MODAL AWAL --}}
     @if(!$this->getActiveShift())
-    <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
-            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mb-4">
-                <svg class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Buka Shift Kasir</h3>
-            <p class="text-sm text-gray-500 mb-6">Masukkan modal awal kas untuk memulai shift Anda.</p>
+        <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mb-4">
+                    <svg class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Buka Shift Kasir</h3>
+                <p class="text-sm text-gray-500 mb-6">Masukkan modal awal kas untuk memulai shift Anda.</p>
+
+                @if($previousShiftInfo)
+                    <div class="mb-5 bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-left">
+                        <div class="flex items-start">
+                            <svg class="h-5 w-5 text-indigo-500 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div class="text-sm text-indigo-800 flex-1">
+                                <p class="font-bold mb-1">Handover Shift Sebelumnya:</p>
+                                <p class="flex justify-between"><span>Kasir:</span> <span>{{ $previousShiftInfo['user'] }}</span></p>
+                                <p class="flex justify-between"><span>Ditutup:</span> <span>{{ $previousShiftInfo['end_at'] }}</span></p>
+                                <p class="flex justify-between font-bold mt-1"><span>Saldo Akhir:</span> <span>Rp {{ number_format($previousShiftInfo['actual_cash'], 0, ',', '.') }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
 
             @error('openingCash')
             <div class="mb-4 text-sm text-red-600 bg-red-50 p-2 rounded">{{ $message }}</div>
@@ -38,12 +55,11 @@
                             this.formatRupiah();
                         }
                     }
-                }">
-                <label class="block text-sm font-medium text-gray-700 mb-2 text-left">Modal Awal (Rp)</label>
-                <input type="text" x-model="nilaiTampil" @input="formatRupiah()" autofocus
-                    class="w-full text-2xl font-bold text-center p-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="0">
-            </div>
+                }"> 
+                    <label class="block text-sm font-medium text-gray-700 mb-2 text-left">Modal Awal (Rp)</label>
+                    <input type="text" x-model="nilaiTampil" @input="formatRupiah()" autofocus
+                        class="w-full text-2xl font-bold text-center p-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
 
             <button wire:click="openShift" wire:loading.attr="disabled"
                 class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition">
@@ -368,7 +384,7 @@
                             </select>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <input wire:model.live.debounce.500ms="discountValue" type="number" min="0" class="w-24 py-1 px-2 text-sm text-right border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
+                            <input wire:model.live.debounce.500ms="discountValue" type="number" min="0" class="w-24 py-1 px-2 text-sm text-right border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                             @if($this->discountAmount > 0)
                             <span class="font-medium text-red-600">- Rp {{ number_format($this->discountAmount, 0, ',', '.') }}</span>
                             @endif
@@ -392,20 +408,20 @@
                         @endforeach
                     </div>
 
-                    @if($paymentMethod === 'cash')
-                    <div class="mt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Bayar Tunai</label>
-                        <input wire:model.live.debounce.300ms="paymentAmount" type="number" class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
-                        @error('paymentAmount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @if($paymentMethod === 'cash')
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Bayar Tunai</label>
+                                <input wire:model.live.debounce.300ms="paymentAmount" type="number" placeholder="Contoh: 100000" class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" >
+                                @error('paymentAmount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
 
-                        @if($paymentAmount >= $this->total && $this->total > 0)
-                        <div class="mt-2 flex justify-between items-center p-2 bg-green-50 rounded text-green-800">
-                            <span class="text-sm font-medium">Kembalian:</span>
-                            <span class="text-lg font-bold">Rp {{ number_format($this->changeAmount, 0, ',', '.') }}</span>
-                        </div>
+                                @if(!is_null($paymentAmount) && $paymentAmount >= $this->total && $this->total > 0)
+                                    <div class="mt-2 flex justify-between items-center p-2 bg-green-50 rounded text-green-800">
+                                        <span class="text-sm font-medium">Kembalian:</span>
+                                        <span class="text-lg font-bold">Rp {{ number_format($this->changeAmount, 0, ',', '.') }}</span>
+                                    </div>
+                                @endif
+                            </div>
                         @endif
-                    </div>
-                    @endif
 
                     <button wire:click="processTransaction" wire:loading.attr="disabled"
                         @disabled(empty($cart) || ($paymentMethod==='cash' && $paymentAmount < $this->total))
@@ -481,11 +497,11 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp)</label>
-                <input wire:model="cashMovementAmount" type="number" min="0" step="1000"
-                    class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
-            </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp)</label>
+                        <input wire:model="cashMovementAmount" type="number" min="0" step="1000"
+                            class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" >
+                    </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Alasan</label>
@@ -582,31 +598,31 @@ $diff = $actualCash - $ss['expected_cash'];
                 </div>
             </div>
 
-            {{-- Rekonsiliasi --}}
-            <div class="p-4 rounded-lg border-2 {{ $actualCash == 0 ? 'border-gray-200 bg-gray-50' : ($diff == 0 ? 'border-green-300 bg-green-50' : ($diff > 0 ? 'border-yellow-300 bg-yellow-50' : 'border-red-300 bg-red-50')) }}">
-                <h4 class="font-bold text-gray-900 mb-3">Rekonsiliasi Kas</h4>
-                <div class="space-y-2">
-                    <div class="flex justify-between text-gray-700">
-                        <span>Expected Cash</span>
-                        <span class="font-bold">Rp {{ number_format($ss['expected_cash'], 0, ',', '.') }}</span>
+                    {{-- Rekonsiliasi --}}
+                    <div class="p-4 rounded-lg border-2 {{ $actualCash == 0 ? 'border-gray-200 bg-gray-50' : ($diff == 0 ? 'border-green-300 bg-green-50' : ($diff > 0 ? 'border-yellow-300 bg-yellow-50' : 'border-red-300 bg-red-50')) }}">
+                        <h4 class="font-bold text-gray-900 mb-3">Rekonsiliasi Kas</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-gray-700">
+                                <span>Expected Cash</span>
+                                <span class="font-bold">Rp {{ number_format($ss['expected_cash'], 0, ',', '.') }}</span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Kas Aktual (hitung fisik)</label>
+                                <input wire:model.live="actualCash" type="number" step="1000"
+                                    class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                @error('actualCash') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            @if($actualCash > 0)
+                                <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+                                    <span class="font-medium">Selisih</span>
+                                    <span class="text-lg font-bold {{ $diff == 0 ? 'text-green-600' : ($diff > 0 ? 'text-yellow-600' : 'text-red-600') }}">
+                                        {{ $diff >= 0 ? '+' : '' }}Rp {{ number_format($diff, 0, ',', '.') }}
+                                        <span class="text-xs ml-1">{{ $diff == 0 ? '(PAS)' : ($diff > 0 ? '(LEBIH)' : '(KURANG)') }}</span>
+                                    </span>
+                                </div>
+                            @endif
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Kas Aktual (hitung fisik)</label>
-                        <input wire:model.live="actualCash" type="number" step="1000"
-                            class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
-                        @error('actualCash') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
-                    @if($actualCash > 0)
-                    <div class="flex justify-between items-center pt-2 border-t border-gray-200">
-                        <span class="font-medium">Selisih</span>
-                        <span class="text-lg font-bold {{ $diff == 0 ? 'text-green-600' : ($diff > 0 ? 'text-yellow-600' : 'text-red-600') }}">
-                            {{ $diff >= 0 ? '+' : '' }}Rp {{ number_format($diff, 0, ',', '.') }}
-                            <span class="text-xs ml-1">{{ $diff == 0 ? '(PAS)' : ($diff > 0 ? '(LEBIH)' : '(KURANG)') }}</span>
-                        </span>
-                    </div>
-                    @endif
-                </div>
-            </div>
 
             {{-- Notes --}}
             <div>
@@ -617,20 +633,24 @@ $diff = $actualCash - $ss['expected_cash'];
             </div>
         </div>
 
-        {{-- Footer --}}
-        <div class="p-6 border-t border-gray-200 grid grid-cols-2 gap-3">
-            <button wire:click="$set('showCloseShiftModal', false)"
-                class="w-full rounded-lg border border-gray-300 px-4 py-2.5 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
-                Batal
-            </button>
-            <button wire:click="closeShift" wire:confirm="Yakin tutup shift? Shift yang sudah ditutup tidak bisa dibuka kembali."
-                class="w-full rounded-lg px-4 py-2.5 bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition">
-                Tutup Shift
-            </button>
+                {{-- Footer --}}
+                <div class="p-6 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button wire:click="$set('showCloseShiftModal', false)"
+                        class="w-full rounded-lg border border-gray-300 px-4 py-2.5 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                        Batal
+                    </button>
+                    <button wire:click="changeShift" wire:confirm="Yakin ingin ganti shift? Shift ini akan ditutup dan Anda akan di-logout."
+                        class="w-full rounded-lg px-4 py-2.5 bg-orange-500 text-sm font-semibold text-white hover:bg-orange-600 transition">
+                        Ganti Shift (Logout)
+                    </button>
+                    <button wire:click="closeShift" wire:confirm="Yakin tutup shift? Shift yang sudah ditutup tidak bisa dibuka kembali."
+                        class="w-full rounded-lg px-4 py-2.5 bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition">
+                        Tutup Shift Saja
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
-@endif
+    @endif
 
 {{-- ============================================= --}}
 {{-- PRINT AREA: RECEIPT --}}

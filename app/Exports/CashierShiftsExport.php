@@ -21,7 +21,7 @@ class CashierShiftsExport implements FromQuery, WithHeadings, WithMapping, WithS
 
     public function query(): Builder
     {
-        return CashierShift::with('user')
+        return CashierShift::with(['user', 'branch'])
             ->when($this->startDate, fn ($q) => $q->whereDate('start_at', '>=', $this->startDate))
             ->when($this->endDate, fn ($q) => $q->whereDate('start_at', '<=', $this->endDate))
             ->orderBy('start_at', 'desc');
@@ -30,6 +30,7 @@ class CashierShiftsExport implements FromQuery, WithHeadings, WithMapping, WithS
     public function headings(): array
     {
         return [
+            'Cabang',
             'Kasir',
             'Mulai',
             'Selesai',
@@ -44,6 +45,7 @@ class CashierShiftsExport implements FromQuery, WithHeadings, WithMapping, WithS
     public function map($row): array
     {
         return [
+            $row->branch?->name ?? '-',
             $row->user?->name ?? '-',
             $row->start_at?->timezone(config('app.timezone'))->format('d/m/Y H:i'),
             $row->end_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '-',

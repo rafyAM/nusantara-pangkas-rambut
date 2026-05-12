@@ -59,6 +59,12 @@ class CashierShiftResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('branch.name')
+                    ->label('Cabang')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('primary'),
                 Tables\Columns\TextColumn::make('start_at')
                     ->label('Mulai')
                     ->dateTime('d/m/Y H:i')
@@ -115,6 +121,12 @@ class CashierShiftResource extends Resource
             ])
             ->defaultSort('start_at', 'desc')
             ->filters([
+                Tables\Filters\SelectFilter::make('branch_id')
+                    ->label('Cabang')
+                    ->relationship('branch', 'name')
+                    ->searchable()
+                    ->preload(),
+
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('Kasir')
                     ->options(fn () => User::whereHas('roles', fn ($q) => $q->whereIn('name', ['cashier', 'admin', 'super_admin']))
@@ -151,6 +163,10 @@ class CashierShiftResource extends Resource
                 Infolists\Components\Section::make('Informasi Shift')
                     ->columns(3)
                     ->schema([
+                        Infolists\Components\TextEntry::make('branch.name')
+                            ->label('Cabang')
+                            ->badge()
+                            ->color('primary'),
                         Infolists\Components\TextEntry::make('user.name')
                             ->label('Kasir'),
                         Infolists\Components\TextEntry::make('start_at')
