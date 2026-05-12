@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\BranchScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,6 +11,7 @@ class CashierShift extends Model
     use HasFactory;
     protected $fillable = [
         'user_id',
+        'branch_id',
         'start_at',
         'end_at',
         'opening_cash',
@@ -19,6 +21,11 @@ class CashierShift extends Model
         'status',
         'notes',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new BranchScope());
+    }
 
     protected $casts = [
         'start_at'      => 'datetime',
@@ -30,6 +37,11 @@ class CashierShift extends Model
     ];
 
     // --- Relationships ---
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     public function user()
     {

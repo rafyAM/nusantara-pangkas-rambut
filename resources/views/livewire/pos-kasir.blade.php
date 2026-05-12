@@ -12,6 +12,23 @@
                 <h3 class="text-xl font-bold text-gray-900 mb-2">Buka Shift Kasir</h3>
                 <p class="text-sm text-gray-500 mb-6">Masukkan modal awal kas untuk memulai shift Anda.</p>
 
+                @if($previousShiftInfo)
+                    <div class="mb-5 bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-left">
+                        <div class="flex items-start">
+                            <svg class="h-5 w-5 text-indigo-500 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div class="text-sm text-indigo-800 flex-1">
+                                <p class="font-bold mb-1">Handover Shift Sebelumnya:</p>
+                                <p class="flex justify-between"><span>Kasir:</span> <span>{{ $previousShiftInfo['user'] }}</span></p>
+                                <p class="flex justify-between"><span>Ditutup:</span> <span>{{ $previousShiftInfo['end_at'] }}</span></p>
+                                <p class="flex justify-between font-bold mt-1"><span>Saldo Akhir:</span> <span>Rp {{ number_format($previousShiftInfo['actual_cash'], 0, ',', '.') }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+
                 @error('openingCash')
                     <div class="mb-4 text-sm text-red-600 bg-red-50 p-2 rounded">{{ $message }}</div>
                 @enderror
@@ -561,14 +578,18 @@
                 </div>
 
                 {{-- Footer --}}
-                <div class="p-6 border-t border-gray-200 grid grid-cols-2 gap-3">
+                <div class="p-6 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button wire:click="$set('showCloseShiftModal', false)"
                         class="w-full rounded-lg border border-gray-300 px-4 py-2.5 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
                         Batal
                     </button>
+                    <button wire:click="changeShift" wire:confirm="Yakin ingin ganti shift? Shift ini akan ditutup dan Anda akan di-logout."
+                        class="w-full rounded-lg px-4 py-2.5 bg-orange-500 text-sm font-semibold text-white hover:bg-orange-600 transition">
+                        Ganti Shift (Logout)
+                    </button>
                     <button wire:click="closeShift" wire:confirm="Yakin tutup shift? Shift yang sudah ditutup tidak bisa dibuka kembali."
                         class="w-full rounded-lg px-4 py-2.5 bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition">
-                        Tutup Shift
+                        Tutup Shift Saja
                     </button>
                 </div>
             </div>
