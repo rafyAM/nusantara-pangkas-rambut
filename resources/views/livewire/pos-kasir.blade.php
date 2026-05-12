@@ -497,11 +497,12 @@
                 </div>
             </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp)</label>
-                        <input wire:model="cashMovementAmount" type="number" min="0" step="1000"
-                            class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" >
-                    </div>
+            <div x-data="inputRupiah(@entangle('cashMovementAmount'))">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah (Rp)</label>
+                <input type="text" x-model="nilaiTampil"
+                    class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" 
+                    placeholder="Rp 0">
+            </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Alasan</label>
@@ -555,7 +556,7 @@ $diff = $actualCash - $ss['expected_cash'];
             </div>
 
             {{-- Modal Awal --}}
-            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg" >
                 <span class="font-medium text-gray-700">Modal Awal</span>
                 <span class="font-bold text-gray-900">Rp {{ number_format($shift->opening_cash, 0, ',', '.') }}</span>
             </div>
@@ -606,10 +607,11 @@ $diff = $actualCash - $ss['expected_cash'];
                                 <span>Expected Cash</span>
                                 <span class="font-bold">Rp {{ number_format($ss['expected_cash'], 0, ',', '.') }}</span>
                             </div>
-                            <div>
+                            <div x-data="inputRupiah(@entangle('actualCash').live)">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Kas Aktual (hitung fisik)</label>
-                                <input wire:model.live="actualCash" type="number" step="1000"
-                                    class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                                <input type="text" x-model="nilaiTampil"
+                                    class="w-full text-lg font-bold p-2 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Rp 0">
                                 @error('actualCash') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             @if($actualCash > 0)
@@ -738,10 +740,24 @@ $printTx = \App\Models\Transaction::with(['items.service', 'items.product', 'cus
 @endif
 @endif
 
-{{-- ============================================= --}}
 {{-- JAVASCRIPT --}}
-{{-- ============================================= --}}
 <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('inputRupiah', (entangleData) => ({
+            nilaiAsli: entangleData,
+            
+            get nilaiTampil() {
+                if (!this.nilaiAsli) return '';
+                return 'Rp ' + parseInt(this.nilaiAsli).toLocaleString('id-ID');
+            },
+            
+            set nilaiTampil(val) {
+                let angka = val.toString().replace(/[^0-9]/g, '');
+                this.nilaiAsli = angka ? parseInt(angka) : 0;
+            }
+        }));
+    });
+
     function openTransactionModal() {
         const modal = document.getElementById('transaction-modal');
         const content = document.getElementById('transaction-modal-content');

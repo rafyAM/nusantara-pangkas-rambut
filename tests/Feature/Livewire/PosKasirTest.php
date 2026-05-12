@@ -32,6 +32,7 @@ function setupCashierEnv(): array
 
     CashierShift::create([
         'user_id' => $user->id,
+        'branch_id' => $branch->id,
         'start_at' => now(),
         'opening_cash' => 0,
         'status' => 'open',

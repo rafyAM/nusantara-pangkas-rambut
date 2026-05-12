@@ -26,8 +26,12 @@ Schedule::call(function () {
     foreach ($expiredReservations as $res) {
         $res->update(['status' => 'cancelled']);
         if ($res->customer) {
-            $res->customer->notify(new \App\Notifications\ReservationCancelled($res));
-            $count++;
+            try {
+                $res->customer->notify(new \App\Notifications\ReservationCancelled($res));
+                $count++;
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Auto-cancel notify failed: ' . $e->getMessage());
+            }
         }
     }
 
@@ -48,8 +52,12 @@ Schedule::call(function () {
 
     foreach ($upcoming as $res) {
         if ($res->customer) {
-            $res->customer->notify(new \App\Notifications\ReservationReminder($res));
-            info("Sent 5-min reminder for reservation ID {$res->id}");
+            try {
+                $res->customer->notify(new \App\Notifications\ReservationReminder($res));
+                info("Sent 5-min reminder for reservation ID {$res->id}");
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Reminder notify failed: ' . $e->getMessage());
+            }
         }
     }
 })->everyMinute();
