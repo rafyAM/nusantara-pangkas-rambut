@@ -16,6 +16,7 @@ use App\Models\CashMovement;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 
 #[Layout('layouts.kasir')]
 class PosKasir extends Component
@@ -72,34 +73,23 @@ class PosKasir extends Component
 
     protected function loadPreviousShiftHandover()
     {
-        /** @var \App\Models\User|null $user */
-        $user = Auth::user();
-        if (!$user) return;
-
-        // Jangan set jika sudah ada shift aktif
-        if ($this->getActiveShift()) return;
-
-        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
-        if (!$branchId && $user->hasRole('super_admin')) {
-            $branchId = \App\Models\Branch::first()?->id;
+        $cookie = request()->cookie('previous_shift_info');
+        if (!$cookie) {
+            return;
         }
 
-        if ($branchId) {
-            $lastShift = CashierShift::withoutGlobalScopes()
-                ->where('branch_id', $branchId)
-                ->where('status', 'closed')
-                ->latest('end_at')
-                ->first();
-
-            if ($lastShift && $lastShift->actual_cash > 0) {
-                $this->openingCash = (float) $lastShift->actual_cash;
-                $this->previousShiftInfo = [
-                    'user'        => $lastShift->user->name ?? 'Kasir',
-                    'end_at'      => $lastShift->end_at->timezone(config('app.timezone'))->format('d/m/Y H:i'),
-                    'actual_cash' => (float) $lastShift->actual_cash,
-                ];
-            }
+        $handoverInfo = json_decode($cookie, true);
+        if (!is_array($handoverInfo)) {
+            return;
         }
+
+        $this->previousShiftInfo = $handoverInfo;
+        if (isset($handoverInfo['actual_cash'])) {
+            $this->openingCash = (float) $handoverInfo['actual_cash'];
+        }
+
+        // remove cookie so it doesn't reappear
+        Cookie::queue(Cookie::forget('previous_shift_info'));
     }
 
     public function getActiveShift()
@@ -331,8 +321,6 @@ class PosKasir extends Component
         $this->actualCash = 0;
         $this->closingNotes = '';
 
-        $this->dispatch('shift-closed');
-
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
@@ -353,6 +341,15 @@ class PosKasir extends Component
         }
 
         $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
+
+        $handover = [
+            'user'        => $shift->user->name ?? Auth::user()?->name ?? 'Kasir',
+            'end_at'      => $shift->end_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'),
+            'actual_cash' => (float) $this->actualCash,
+        ];
+
+        // create a short-lived cookie (5 minutes) to carry handover info across logout
+        Cookie::queue('previous_shift_info', json_encode($handover), 5);
 
         Auth::logout();
         request()->session()->invalidate();

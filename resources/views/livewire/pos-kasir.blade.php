@@ -11,6 +11,10 @@
                 <h3 class="text-2xl font-bold text-gray-900 mb-2">Buka Shift Kasir</h3>
                 <p class="text-sm text-gray-500 mb-8">Masukkan modal awal kas untuk memulai shift Anda.</p>
 
+                @error('openingCash')
+                    <div class="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-xl font-medium">{{ $message }}</div>
+                @enderror
+
                 @if($previousShiftInfo)
                     <div class="mb-6 bg-orange-50 border border-orange-100 rounded-xl p-4 text-left">
                         <div class="flex items-start">
@@ -28,35 +32,9 @@
                     </div>
                 @endif
 
-                @error('openingCash')
-                    <div class="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-xl font-medium">{{ $message }}</div>
-                @enderror
-
-                <div class="mb-8" x-data="{
-                    nilaiAsli: @entangle('openingCash'), 
-                    nilaiTampil: '',
-                    
-                    formatRupiah() {
-                        let angkaSaja = this.nilaiTampil.toString().replace(/[^0-9]/g, '');
-                        
-                        if (angkaSaja) {
-                            this.nilaiTampil = parseInt(angkaSaja, 10).toLocaleString('id-ID');
-                            this.nilaiAsli = parseInt(angkaSaja, 10);
-                        } else {
-                            this.nilaiTampil = '';
-                            this.nilaiAsli = 0;
-                        }
-                    },
-                    
-                    init() {
-                        if(this.nilaiAsli) {
-                            this.nilaiTampil = this.nilaiAsli.toString();
-                            this.formatRupiah();
-                        }
-                    }
-                }"> 
+                <div class="mb-8" x-data="inputRupiah(@entangle('openingCash').live)"> 
                     <label class="block text-sm font-bold text-gray-700 mb-2 text-left">Modal Awal (Rp)</label>
-                    <input type="text" x-model="nilaiTampil" @input="formatRupiah()" autofocus
+                    <input type="text" x-model="nilaiTampil" autofocus inputmode="numeric"
                         class="w-full text-2xl font-bold text-center p-4 border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 bg-gray-50">
                 </div>
 
@@ -76,7 +54,7 @@
         <div class="flex-1 flex flex-col p-4 lg:p-8 overflow-hidden bg-[#F8F9FA] min-h-0">
             
             {{-- Top Header --}}
-            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 lg:mb-8 gap-4">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
                 <div class="flex items-center gap-3 w-full lg:w-auto">
                     <button @click="showSidebar = !showSidebar" class="p-3 bg-white border border-gray-200 rounded-full text-gray-600 hover:bg-gray-50 transition shadow-sm flex-shrink-0">
                         <svg x-show="!showSidebar" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
@@ -349,15 +327,27 @@
                         @endforeach
                     </div>
                     @if($paymentMethod === 'cash')
-                        <div class="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100" x-data="inputRupiah(@entangle('paymentAmount').live)">
                             <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase tracking-wider">Jumlah Uang Tunai</label>
-                            <input wire:model.live.debounce.300ms="paymentAmount" type="number" class="w-full text-xl font-black p-3 border border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 text-right bg-white shadow-sm transition" placeholder="0">
+                            <input type="text" x-model="nilaiTampil" inputmode="numeric" class="w-full text-xl font-black p-3 border border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 text-right bg-white shadow-sm transition" placeholder="Rp 0">
                             @error('paymentAmount') <p class="mt-2 text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg">{{ $message }}</p> @enderror
-                            @if(!is_null($paymentAmount) && $paymentAmount >= $this->total && $this->total > 0)
-                                <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
-                                    <span class="font-bold text-gray-500 text-sm">Kembalian:</span>
-                                    <span class="font-black text-green-600 text-lg">Rp {{ number_format($this->changeAmount, 0, ',', '.') }}</span>
-                                </div>
+                            @if(!empty($paymentAmount) && (float)$paymentAmount > 0 && $this->total > 0)
+                                @if((float)$paymentAmount > $this->total)
+                                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                                        <span class="font-bold text-gray-500 text-sm">Kembalian:</span>
+                                        <span class="font-black text-green-600 text-lg">Rp {{ number_format((float)$paymentAmount - $this->total, 0, ',', '.') }}</span>
+                                    </div>
+                                @elseif((float)$paymentAmount == $this->total)
+                                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                                        <span class="font-bold text-gray-500 text-sm">Status:</span>
+                                        <span class="font-black text-blue-600 text-lg">Pembayaran Pas ✓</span>
+                                    </div>
+                                @else
+                                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                                        <span class="font-bold text-gray-500 text-sm">Kekurangan:</span>
+                                        <span class="font-black text-red-600 text-lg">Rp {{ number_format($this->total - (float)$paymentAmount, 0, ',', '.') }}</span>
+                                    </div>
+                                @endif
                             @endif
                         </div>
                     @endif
@@ -431,10 +421,11 @@
                         </div>
                     </div>
 
-                    <div>
+                    <div x-data="inputRupiah(@entangle('cashMovementAmount').live)">
                         <label class="block text-sm font-bold text-gray-700 mb-2">Jumlah (Rp)</label>
-                        <input wire:model="cashMovementAmount" type="number" min="0" step="1000"
-                            class="w-full text-xl font-black p-4 border border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 bg-gray-50 transition" >
+                        <input type="text" x-model="nilaiTampil" inputmode="numeric"
+                            class="w-full text-xl font-black p-4 border border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 bg-gray-50 transition"
+                            placeholder="Rp 0">
                     </div>
 
                     <div>
@@ -674,15 +665,15 @@
         document.addEventListener('alpine:init', () => {
             Alpine.data('inputRupiah', (entangleData) => ({
                 nilaiAsli: entangleData,
-                
+
                 get nilaiTampil() {
                     if (!this.nilaiAsli) return '';
                     return 'Rp ' + parseInt(this.nilaiAsli).toLocaleString('id-ID');
                 },
-                
+
                 set nilaiTampil(val) {
-                    let angka = val.toString().replace(/[^0-9]/g, '');
-                    this.nilaiAsli = angka ? parseInt(angka) : 0;
+                    const angka = val.toString().replace(/[^0-9]/g, '');
+                    this.nilaiAsli = angka ? parseInt(angka, 10) : 0;
                 }
             }));
         });
