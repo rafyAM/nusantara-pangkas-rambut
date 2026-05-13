@@ -22,13 +22,13 @@
 
         <!-- Sidebar -->
         <aside x-show="showSidebar" 
-               x-transition:enter="transition-transform duration-300 ease-in-out"
-               x-transition:enter-start="-translate-x-full"
-               x-transition:enter-end="translate-x-0"
-               x-transition:leave="transition-transform duration-300 ease-in-out"
-               x-transition:leave-start="translate-x-0"
-               x-transition:leave-end="-translate-x-full"
-               class="fixed inset-y-0 left-0 z-50 w-64 md:w-80 lg:w-96 bg-white shadow-2xl flex flex-col print:hidden h-full border-r border-gray-100 flex-shrink-0">
+            x-transition:enter="transition-transform duration-300 ease-in-out"
+            x-transition:enter-start="-translate-x-full"
+            x-transition:enter-end="translate-x-0"
+            x-transition:leave="transition-transform duration-300 ease-in-out"
+            x-transition:leave-start="translate-x-0"
+            x-transition:leave-end="-translate-x-full"
+            class="fixed inset-y-0 left-0 z-50 w-64 md:w-80 lg:w-96 bg-white shadow-2xl flex flex-col print:hidden h-full border-r border-gray-100 flex-shrink-0">
             <!-- Logo -->
             <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100">
                 <div class="flex items-center gap-2 font-bold text-base text-gray-900 overflow-hidden">

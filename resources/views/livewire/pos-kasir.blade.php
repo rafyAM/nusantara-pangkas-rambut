@@ -197,7 +197,7 @@
 
         {{-- RIGHT SIDE: Cart Sidebar --}}
         <div class="fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] lg:w-[420px] lg:relative lg:z-30 bg-white shadow-2xl lg:shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.1)] flex flex-col border-l border-gray-100 flex-shrink-0 transition-transform duration-300 transform lg:translate-x-0"
-             :class="showMobileCart ? 'translate-x-0' : 'translate-x-full'">
+            :class="showMobileCart ? 'translate-x-0' : 'translate-x-full'">
             
             {{-- Customer Section --}}
             <div class="p-6 border-b border-gray-100">
@@ -370,7 +370,7 @@
         aria-labelledby="modal-title" role="dialog" aria-modal="true">
 
         <div id="transaction-modal-content"
-             class="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm text-center transform transition-all duration-300 opacity-0 scale-95 translate-y-4">
+            class="relative bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm text-center transform transition-all duration-300 opacity-0 scale-95 translate-y-4">
 
             <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-5 shadow-inner">
                 <svg class="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
