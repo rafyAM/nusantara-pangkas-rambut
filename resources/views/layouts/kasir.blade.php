@@ -14,57 +14,95 @@
     @livewireStyles
 </head>
 
-<body class="bg-gray-100 text-gray-800 font-sans antialiased">
-    <!-- Navbar -->
-    <header class="bg-white shadow relative z-50 print:hidden">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo / Title -->
-                <div class="flex-shrink-0 flex items-center font-bold text-xl text-indigo-600">
-                    {{ config('app.name', 'Nusantara Pangkas Rambut') }}
-                </div>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased overflow-hidden">
+    <div class="flex h-screen overflow-hidden" x-data="{ showSidebar: false }">
+        
+        <!-- Mobile/Desktop Overlay -->
+        <div x-show="showSidebar" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" @click="showSidebar = false" x-transition.opacity style="display: none;"></div>
 
-                <!-- Shift Status & User Menu -->
-                <div class="flex items-center space-x-4 text-sm font-medium">
-                    @php
-                        $currentShift = \App\Models\CashierShift::where('user_id', auth()->id())->where('status', 'open')->latest()->first();
-                    @endphp
-
-                    @if($currentShift)
-                        <div class="flex items-center space-x-3">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                                <span class="w-2 h-2 mr-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                Shift Aktif
-                            </span>
-                            <span class="text-gray-400 text-xs">sejak {{ $currentShift->start_at->timezone(config('app.timezone'))->format('H:i') }}</span>
-                            <button onclick="Livewire.dispatch('openCashMovementFromLayout')"
-                                class="px-3 py-1 text-xs font-medium rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition">
-                                Cash In/Out
-                            </button>
-                            <button onclick="Livewire.dispatch('openCloseShiftFromLayout')"
-                                class="px-3 py-1 text-xs font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition">
-                                Tutup Shift
-                            </button>
-                        </div>
-                        <span class="text-gray-300">|</span>
-                    @endif
-
-                    <span class="text-gray-600">Halo, {{ auth()->user()->name ?? 'Kasir' }}</span>
-                    <form method="POST" action="{{ route('filament.admin.auth.logout') }}">
-                        @csrf
-                        <button type="submit" class="text-red-500 hover:text-red-700 underline">Logout</button>
-                    </form>
+        <!-- Sidebar -->
+        <aside x-show="showSidebar" 
+               x-transition:enter="transition-transform duration-300 ease-in-out"
+               x-transition:enter-start="-translate-x-full"
+               x-transition:enter-end="translate-x-0"
+               x-transition:leave="transition-transform duration-300 ease-in-out"
+               x-transition:leave-start="translate-x-0"
+               x-transition:leave-end="-translate-x-full"
+               class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl flex flex-col print:hidden h-full border-r border-gray-100 flex-shrink-0">
+            <!-- Logo -->
+            <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100">
+                <div class="flex items-center gap-2 font-bold text-base text-gray-900 overflow-hidden">
+                    <div class="w-8 h-8 bg-orange-500 text-white rounded-md flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <span class="whitespace-nowrap truncate">Nusantara Pangkas Rambut</span>
                 </div>
             </div>
-        </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="py-6">
-        <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Cashier Profile -->
+            <div class="p-4">
+                <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 shadow-sm">
+                    <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold overflow-hidden">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name ?? 'Kasir') }}&color=f97316&background=ffedd5" alt="Avatar" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-gray-900 truncate">{{ auth()->user()->name ?? 'Kasir' }}</p>
+                        @php
+                            $currentShift = \App\Models\CashierShift::where('user_id', auth()->id())->where('status', 'open')->latest()->first();
+                        @endphp
+                        @if($currentShift)
+                            <p class="text-xs text-gray-500 truncate">{{ $currentShift->start_at->timezone(config('app.timezone'))->format('H:i') }} - Aktif</p>
+                        @else
+                            <p class="text-xs text-gray-500 truncate">Belum buka shift</p>
+                        @endif
+                    </div>
+                    <div class="text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
+                <a href="{{ route('kasir.pos') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-orange-500 text-white font-medium transition shadow-md shadow-orange-500/30">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    Cashier
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium transition">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    Table
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium transition">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Report
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium transition">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    History
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium transition">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    Supply
+                </a>
+            </nav>
+
+            <!-- Logout -->
+            <div class="p-4 border-t border-gray-100">
+                <form method="POST" action="{{ route('filament.admin.auth.logout') }}" class="w-full">
+                    @csrf
+                    <button type="submit" class="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-orange-500 hover:bg-orange-50 font-medium transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        Log out
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden min-h-0 bg-gray-50">
             {{ $slot }}
-        </div>
-    </main>
+        </main>
+    </div>
 
     @livewireScripts
 </body>
