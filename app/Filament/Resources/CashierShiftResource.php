@@ -214,8 +214,7 @@ class CashierShiftResource extends Resource
                                 (float) $record->difference > 0 => 'warning',
                                 (float) $record->difference < 0 => 'danger',
                                 default                         => 'success',
-                            })
-                            ->suffixAction(null),
+                            }),
                         Infolists\Components\TextEntry::make('notes')
                             ->label('Catatan')
                             ->columnSpanFull()

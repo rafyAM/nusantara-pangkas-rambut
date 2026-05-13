@@ -1,5 +1,9 @@
 @php
-    /** @var \App\Models\CashierShift $record */
+    $record = $this->record ?? null;
+    if (!$record) {
+        return;
+    }
+    
     $transactions = $record->transactions()
         ->with(['customer', 'employee'])
         ->where('status', 'completed')

@@ -28,7 +28,7 @@
                x-transition:leave="transition-transform duration-300 ease-in-out"
                x-transition:leave-start="translate-x-0"
                x-transition:leave-end="-translate-x-full"
-               class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl flex flex-col print:hidden h-full border-r border-gray-100 flex-shrink-0">
+               class="fixed inset-y-0 left-0 z-50 w-96 bg-white shadow-2xl flex flex-col print:hidden h-full border-r border-gray-100 flex-shrink-0">
             <!-- Logo -->
             <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100">
                 <div class="flex items-center gap-2 font-bold text-base text-gray-900 overflow-hidden">
@@ -55,9 +55,6 @@
                         @else
                             <p class="text-xs text-gray-500 truncate">Belum buka shift</p>
                         @endif
-                    </div>
-                    <div class="text-gray-400">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
                     </div>
                 </div>
             </div>

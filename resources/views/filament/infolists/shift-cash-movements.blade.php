@@ -1,5 +1,9 @@
 @php
-    /** @var \App\Models\CashierShift $record */
+    $record = $this->record ?? null;
+    if (!$record) {
+        return;
+    }
+    
     $movements = $record->cashMovements()->orderBy('created_at')->get();
     $totalIn   = $movements->where('type', 'in')->sum('amount');
     $totalOut  = $movements->where('type', 'out')->sum('amount');

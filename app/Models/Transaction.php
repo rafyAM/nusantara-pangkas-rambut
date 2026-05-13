@@ -54,11 +54,13 @@ class Transaction extends Model
         });
     }
 
-    public static function generateInvoiceNumber(?int $branchId = null): string
+    public static function generateInvoiceNumber(?int $branchId = null, int $attempt = 1): string
     {
+        $maxAttempts = 5;
+        
         $date = now()->format('Ymd');
+        $time = now()->format('His'); 
 
-        // Ambil kode cabang (2-3 huruf kapital dari slug/nama)
         $branchCode = 'GEN';
         if ($branchId) {
             $branch = Branch::find($branchId);
@@ -67,6 +69,7 @@ class Transaction extends Model
             }
         }
 
+        try {
         $lastTransaction = self::withoutGlobalScope(BranchScope::class)
             ->where('branch_id', $branchId)
             ->whereDate('created_at', today())
@@ -79,7 +82,24 @@ class Transaction extends Model
             $sequence = (int) $matches[1] + 1;
         }
 
-        return sprintf('INV-%s-%s-%04d', $branchCode, $date, $sequence);
+        $invoiceNumber = sprintf('INV-%s-%s-%s-%04d', $branchCode, $date, $time, $sequence);
+        
+        if (self::withoutGlobalScope(BranchScope::class)->where('invoice_number', $invoiceNumber)->exists()) {
+            if ($attempt < $maxAttempts) {
+                usleep(mt_rand(100, 500) * 1000); // Sleep 100-500ms
+                return self::generateInvoiceNumber($branchId, $attempt + 1);
+            }
+            
+            $random = str_pad(mt_rand(0, 999), 3, '0', STR_PAD_LEFT);
+            $invoiceNumber = sprintf('INV-%s-%s-%s-%04d-%s', $branchCode, $date, $time, $sequence, $random);
+        }
+
+        return $invoiceNumber;
+        } catch (\Exception $e) {
+            $randomPart = strtoupper(substr(md5(uniqid()), 0, 6));
+            return sprintf('INV-%s-%s-%s-%s', $branchCode, $date, $time, $randomPart);
+        }
+
     }
 
     public function customer()

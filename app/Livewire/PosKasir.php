@@ -42,6 +42,7 @@ class PosKasir extends Component
     public ?float $paymentAmount = null;
 
     // --- Transaksi Selesai ---
+    public bool $isProcessing = false;
     public ?int $completedTransactionId = null;
     public string $completedInvoiceNumber = '';
 
@@ -330,8 +331,13 @@ class PosKasir extends Component
         $this->actualCash = 0;
         $this->closingNotes = '';
 
-        // Dispatch event agar JS bisa menampilkan notifikasi atau redirect
         $this->dispatch('shift-closed');
+
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+
+        return redirect('/admin/login');
     }
 
     public function changeShift()
@@ -348,7 +354,6 @@ class PosKasir extends Component
 
         $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
 
-        // Logout dan arahkan ke halaman login
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
@@ -558,6 +563,11 @@ class PosKasir extends Component
 
     public function processTransaction()
     {
+        // Prevent double processing
+        if ($this->isProcessing) {
+            return;
+        }
+
         if (empty($this->cart)) {
             return;
         }
@@ -636,7 +646,7 @@ class PosKasir extends Component
         DB::beginTransaction();
 
         try {
-            // 1. Tangani Customer
+            $this->isProcessing = true;
             if (!empty($this->customerName) && !$this->selectedCustomerId) {
                 $customer = Customer::create([
                     'name'  => $this->customerName,
@@ -726,6 +736,8 @@ class PosKasir extends Component
         } catch (\Exception $e) {
             DB::rollBack();
             $this->addError('general', 'Gagal memproses transaksi: ' . $e->getMessage());
+        } finally {
+            $this->isProcessing = false;
         }
     }
 
