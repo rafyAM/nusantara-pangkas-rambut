@@ -3,7 +3,7 @@ const OFFLINE_URL = '/';
 
 const urlsToCache = [
     OFFLINE_URL,
-    '/build/assets/app.css', // Asumsi nama dari vite, walau dinamis ini fallback dasar
+    '/build/assets/app.css', 
     '/build/assets/app.js',
     '/images/hero-bg.png',
     '/favicon.ico',
@@ -15,7 +15,7 @@ self.addEventListener('install', function(event) {
         caches.open(CACHE_NAME)
         .then(function(cache) {
             return Promise.allSettled(
-                urlsToCache.map(url => cache.add(url).catch(err => console.log('Gagal cache:', url)))
+                urlsToCache.map(url => cache.add(url))
             );
         })
         .then(() => self.skipWaiting())
