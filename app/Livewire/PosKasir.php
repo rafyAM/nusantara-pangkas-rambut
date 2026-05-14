@@ -319,13 +319,17 @@ class PosKasir extends Component
 
         $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
 
+        $this->dispatch('shift-closed');
+
         $this->showCloseShiftModal = false;
         $this->actualCash = 0;
         $this->closingNotes = '';
 
         Auth::logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+        if (request()->hasSession()) {
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+        }
 
         return redirect('/admin/login');
     }
@@ -391,22 +395,38 @@ class PosKasir extends Component
             return;
         }
 
-        CashMovement::create([
-            'cashier_shift_id' => $shift->id,
-            'user_id'          => Auth::id(),
-            'type'             => $this->cashMovementType,
-            'amount'           => $this->cashMovementAmount,
-            'reason'           => $this->cashMovementReason,
-        ]);
+        if ($shift->status !== 'open') {
+            $this->addError('cashMovement', 'Shift tidak aktif, tidak dapat menambah cash movement.');
+            return;
+        }
+
+        try {
+            if (empty($shift->branch_id) && Auth::user() && Auth::user()->branches()->exists()) {
+                $firstBranchId = Auth::user()->branches()->first()->id;
+                $shift->branch_id = $firstBranchId;
+                $shift->save();
+            }
+
+            CashMovement::withoutEvents(function () use ($shift) {
+                CashMovement::create([
+                    'cashier_shift_id' => $shift->id,
+                    'user_id'          => Auth::id(),
+                    'type'             => $this->cashMovementType,
+                    'amount'           => $this->cashMovementAmount,
+                    'reason'           => $this->cashMovementReason,
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            $this->addError('cashMovement', $e->getMessage());
+            return;
+        }
 
         $this->showCashMovementModal = false;
         $this->cashMovementAmount = 0;
         $this->cashMovementReason = '';
     }
 
-    // =============================================
     //  CUSTOMER
-    // =============================================
 
     public function updatedCustomerSearch()
     {
