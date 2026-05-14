@@ -507,9 +507,7 @@ class PosKasir extends Component
         $this->activeTab = 'service';
     }
 
-    // =============================================
     //  CART
-    // =============================================
 
     public function addToCart($itemId, $itemType)
     {
@@ -594,9 +592,7 @@ class PosKasir extends Component
         $this->showPaymentModal = false;
     }
 
-    // =============================================
     //  PROCESS TRANSACTION
-    // =============================================
 
     public function processTransaction()
     {
@@ -779,9 +775,7 @@ class PosKasir extends Component
         }
     }
 
-    // =============================================
     //  RENDER
-    // =============================================
 
     public function render()
     {
