@@ -13,7 +13,11 @@ class ViewCashierShift extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            // Kosongkan karena kita tidak ingin ada tombol "Edit" di halaman admin
+            Actions\Action::make('back')
+                ->label('Kembali')
+                ->url($this->getResource()::getUrl('index'))
+                ->icon('heroicon-o-arrow-left')
+                ->color('gray'),
         ];
     }
 }

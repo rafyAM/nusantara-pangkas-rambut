@@ -16,6 +16,7 @@ use App\Models\CashMovement;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 
 #[Layout('layouts.kasir')]
 class PosKasir extends Component
@@ -31,6 +32,7 @@ class PosKasir extends Component
     public string $customerPhone = '';
     public array $customerSuggestions = [];
     public ?int $selectedCustomerId = null;
+    public bool $showCustomerModal = false;
 
     // --- Reservasi ---
     public ?int $processedReservationId = null;
@@ -40,8 +42,10 @@ class PosKasir extends Component
     public float $discountValue = 0;
     public string $paymentMethod = 'cash';
     public ?float $paymentAmount = null;
+    public bool $showPaymentModal = false;
 
     // --- Transaksi Selesai ---
+    public bool $isProcessing = false;
     public ?int $completedTransactionId = null;
     public string $completedInvoiceNumber = '';
 
@@ -71,34 +75,23 @@ class PosKasir extends Component
 
     protected function loadPreviousShiftHandover()
     {
-        /** @var \App\Models\User|null $user */
-        $user = Auth::user();
-        if (!$user) return;
-
-        // Jangan set jika sudah ada shift aktif
-        if ($this->getActiveShift()) return;
-
-        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
-        if (!$branchId && $user->hasRole('super_admin')) {
-            $branchId = \App\Models\Branch::first()?->id;
+        $cookie = request()->cookie('previous_shift_info');
+        if (!$cookie) {
+            return;
         }
 
-        if ($branchId) {
-            $lastShift = CashierShift::withoutGlobalScopes()
-                ->where('branch_id', $branchId)
-                ->where('status', 'closed')
-                ->latest('end_at')
-                ->first();
-
-            if ($lastShift && $lastShift->actual_cash > 0) {
-                $this->openingCash = (float) $lastShift->actual_cash;
-                $this->previousShiftInfo = [
-                    'user'        => $lastShift->user->name ?? 'Kasir',
-                    'end_at'      => $lastShift->end_at->timezone(config('app.timezone'))->format('d/m/Y H:i'),
-                    'actual_cash' => (float) $lastShift->actual_cash,
-                ];
-            }
+        $handoverInfo = json_decode($cookie, true);
+        if (!is_array($handoverInfo)) {
+            return;
         }
+
+        $this->previousShiftInfo = $handoverInfo;
+        if (isset($handoverInfo['actual_cash'])) {
+            $this->openingCash = (float) $handoverInfo['actual_cash'];
+        }
+
+        // remove cookie so it doesn't reappear
+        Cookie::queue(Cookie::forget('previous_shift_info'));
     }
 
     public function getActiveShift()
@@ -326,12 +319,19 @@ class PosKasir extends Component
 
         $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
 
+        // $this->dispatch('shift-closed');
+
         $this->showCloseShiftModal = false;
         $this->actualCash = 0;
         $this->closingNotes = '';
 
-        // Dispatch event agar JS bisa menampilkan notifikasi atau redirect
-        $this->dispatch('shift-closed');
+        Auth::logout();
+        if (request()->hasSession()) {
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+        }
+
+        return redirect('/admin/login');
     }
 
     public function changeShift()
@@ -348,7 +348,15 @@ class PosKasir extends Component
 
         $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
 
-        // Logout dan arahkan ke halaman login
+        $handover = [
+            'user'        => $shift->user->name ?? Auth::user()?->name ?? 'Kasir',
+            'end_at'      => $shift->end_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i'),
+            'actual_cash' => (float) $this->actualCash,
+        ];
+
+        // create a short-lived cookie (5 minutes) to carry handover info across logout
+        Cookie::queue('previous_shift_info', json_encode($handover), 5);
+
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
@@ -387,22 +395,38 @@ class PosKasir extends Component
             return;
         }
 
-        CashMovement::create([
-            'cashier_shift_id' => $shift->id,
-            'user_id'          => Auth::id(),
-            'type'             => $this->cashMovementType,
-            'amount'           => $this->cashMovementAmount,
-            'reason'           => $this->cashMovementReason,
-        ]);
+        if ($shift->status !== 'open') {
+            $this->addError('cashMovement', 'Shift tidak aktif, tidak dapat menambah cash movement.');
+            return;
+        }
+
+        try {
+            if (empty($shift->branch_id) && Auth::user() && Auth::user()->branches()->exists()) {
+                $firstBranchId = Auth::user()->branches()->first()->id;
+                $shift->branch_id = $firstBranchId;
+                $shift->save();
+            }
+
+            CashMovement::withoutEvents(function () use ($shift) {
+                CashMovement::create([
+                    'cashier_shift_id' => $shift->id,
+                    'user_id'          => Auth::id(),
+                    'type'             => $this->cashMovementType,
+                    'amount'           => $this->cashMovementAmount,
+                    'reason'           => $this->cashMovementReason,
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            $this->addError('cashMovement', $e->getMessage());
+            return;
+        }
 
         $this->showCashMovementModal = false;
         $this->cashMovementAmount = 0;
         $this->cashMovementReason = '';
     }
 
-    // =============================================
     //  CUSTOMER
-    // =============================================
 
     public function updatedCustomerSearch()
     {
@@ -424,6 +448,7 @@ class PosKasir extends Component
         $this->customerName = $name;
         $this->customerSearch = '';
         $this->customerSuggestions = [];
+        $this->showCustomerModal = false;
     }
 
     public function clearCustomer()
@@ -432,6 +457,8 @@ class PosKasir extends Component
         $this->customerName = '';
         $this->customerSearch = '';
         $this->customerPhone = '';
+        $this->customerSuggestions = [];
+        $this->showCustomerModal = false;
     }
 
     // =============================================
@@ -480,9 +507,7 @@ class PosKasir extends Component
         $this->activeTab = 'service';
     }
 
-    // =============================================
     //  CART
-    // =============================================
 
     public function addToCart($itemId, $itemType)
     {
@@ -552,12 +577,30 @@ class PosKasir extends Component
         $this->cart[$cartKey]['subtotal'] = $qty * $this->cart[$cartKey]['price'];
     }
 
-    // =============================================
+    public function openPaymentModal()
+    {
+        if (empty($this->cart)) {
+            return;
+        }
+
+        $this->resetErrorBag('paymentAmount');
+        $this->showPaymentModal = true;
+    }
+
+    public function closePaymentModal()
+    {
+        $this->showPaymentModal = false;
+    }
+
     //  PROCESS TRANSACTION
-    // =============================================
 
     public function processTransaction()
     {
+        // Prevent double processing
+        if ($this->isProcessing) {
+            return;
+        }
+
         if (empty($this->cart)) {
             return;
         }
@@ -636,7 +679,7 @@ class PosKasir extends Component
         DB::beginTransaction();
 
         try {
-            // 1. Tangani Customer
+            $this->isProcessing = true;
             if (!empty($this->customerName) && !$this->selectedCustomerId) {
                 $customer = Customer::create([
                     'name'  => $this->customerName,
@@ -721,17 +764,18 @@ class PosKasir extends Component
             $this->discountValue = 0;
             $this->discountType = 'nominal';
             $this->processedReservationId = null;
+            $this->showPaymentModal = false;
 
             $this->dispatch('transaction-completed');
         } catch (\Exception $e) {
             DB::rollBack();
             $this->addError('general', 'Gagal memproses transaksi: ' . $e->getMessage());
+        } finally {
+            $this->isProcessing = false;
         }
     }
 
-    // =============================================
     //  RENDER
-    // =============================================
 
     public function render()
     {

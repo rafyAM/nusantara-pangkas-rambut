@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Livewire\PosKasir;
+use App\Livewire\TransactionHistoryPage;
 use App\Http\Controllers\PushSubscriptionController;
 
 Route::get('/', function () {
@@ -28,6 +29,7 @@ Route::post('/push/subscribe', [PushSubscriptionController::class, 'subscribe'])
 
 Route::middleware(['auth', 'role:cashier'])->group(function () {
     Route::get('/kasir/pos', PosKasir::class)->name('kasir.pos');
+    Route::get('/kasir/transaction-history', TransactionHistoryPage::class)->name('kasir.transaction-history');
 });
 
 Route::middleware('auth:customer')->group(function () {
