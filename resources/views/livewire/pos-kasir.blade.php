@@ -640,9 +640,9 @@
 
                 {{-- Footer --}}
                 <div class="p-6 bg-gray-50 border-t border-gray-100 flex flex-col gap-3">
-                    <button wire:click="closeShift" wire:confirm="Yakin tutup shift? Shift yang sudah ditutup tidak bisa dibuka kembali."
+                    <button wire:click="closeShift" wire:confirm="Yakin tutup usaha ini?"
                         class="w-full rounded-xl px-6 py-4 bg-red-600 text-base font-black text-white hover:bg-red-700 transition shadow-lg shadow-red-600/20">
-                        Tutup Shift Saja
+                        Tutup Usaha
                     </button>
                     <div class="grid grid-cols-2 gap-3">
                         <button wire:click="$set('showCloseShiftModal', false)"
@@ -651,7 +651,7 @@
                         </button>
                         <button wire:click="changeShift" wire:confirm="Yakin ingin ganti shift? Shift ini akan ditutup dan Anda akan di-logout."
                             class="w-full rounded-xl border-2 border-orange-500 px-6 py-4 bg-orange-50 text-base font-bold text-orange-600 hover:bg-orange-100 transition">
-                            Ganti Shift (Logout)
+                            Ganti Shift
                         </button>
                     </div>
                 </div>
