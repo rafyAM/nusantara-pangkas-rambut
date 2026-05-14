@@ -16,11 +16,7 @@ class TransactionHistoryPage extends Component
     public ?int $selectedShiftId = null;
     public string $filterPaymentMethod = 'all';
     public string $searchQuery = '';
-    public string $sortBy = 'recent'; // recent, oldest, highest, lowest
-
-    // =============================================
-    //  COMPUTED PROPERTIES
-    // =============================================
+    public string $sortBy = 'recent'; 
 
     #[Computed]
     public function availableShifts()
@@ -45,7 +41,7 @@ class TransactionHistoryPage extends Component
             return collect();
         }
 
-        $query = Transaction::with(['customer', 'employee', 'transactionItems'])
+        $query = Transaction::with(['customer', 'employee', 'items'])
             ->where('status', 'completed');
 
         // Filter by shift
@@ -86,7 +82,6 @@ class TransactionHistoryPage extends Component
             });
         }
 
-        // Sort
         match ($this->sortBy) {
             'oldest' => $query->orderBy('transaction_date', 'asc'),
             'highest' => $query->orderByDesc('total_amount'),
@@ -127,10 +122,6 @@ class TransactionHistoryPage extends Component
         return $summary;
     }
 
-    // =============================================
-    //  PRIVATE HELPERS
-    // =============================================
-
     private function getCurrentShift()
     {
         $user = Auth::user();
@@ -144,10 +135,6 @@ class TransactionHistoryPage extends Component
             ->latest()
             ->first();
     }
-
-    // =============================================
-    //  RENDER
-    // =============================================
 
     public function render()
     {

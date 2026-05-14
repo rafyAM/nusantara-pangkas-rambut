@@ -61,22 +61,53 @@
 
             <!-- Navigation -->
             <nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
-                <a href="{{ route('kasir.pos') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-orange-500 text-white font-medium transition shadow-md shadow-orange-500/30">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                    Cashier
+                <a href="{{ route('kasir.pos') }}" 
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition 
+                    {{ request()->routeIs('kasir.pos') 
+                            ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' 
+                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' 
+                    }}">
+                    <svg class="w-5 h-5 {{ request()->routeIs('kasir.pos') ? 'text-white' : 'text-gray-400' }}" 
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>Cashier</span>
                 </a>
-                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium transition">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    Report
+                {{-- <a href="{{ route('kasir.report') }}" 
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition 
+                    {{ request()->routeIs('kasir.report') 
+                            ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' 
+                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' 
+                    }}">
+                    <svg class="w-5 h-5 {{ request()->routeIs('kasir.report') ? 'text-white' : 'text-gray-400' }}" 
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>Report</span>
+                </a> --}}
+                <a href="{{ route('kasir.transaction-history') }}" 
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition 
+                        {{ request()->routeIs('kasir.transaction-history') 
+                                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' 
+                                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' 
+                        }}">                    
+                        <svg class="w-5 h-5 {{ request()->routeIs('kasir.transaction-history') ? 'text-white' : 'text-gray-400' }}"  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    <span>History</span>
                 </a>
-                <a href="{{ route('kasir.transaction-history') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium transition">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    History
-                </a>
-                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium transition">
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                    Supply
-                </a>
+                {{-- <a href="{{ route('kasir.supply') }}" 
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition 
+                    {{ request()->routeIs('kasir.supply') 
+                            ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' 
+                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' 
+                    }}">
+                    <svg class="w-5 h-5 {{ request()->routeIs('kasir.supply') ? 'text-white' : 'text-gray-400' }}" 
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>Supply</span>
+                </a> --}}
             </nav>
 
             <!-- Logout -->

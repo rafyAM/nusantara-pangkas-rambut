@@ -224,33 +224,17 @@
                             </div>
                         @endif
                     </div>
-                    <button wire:click="clearCustomer" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                    </button>
-                </div>
-
-                {{-- Customer Input --}}
-                @if(!$selectedCustomerId)
-                <div class="mt-4">
-                    <div class="relative">
-                        <input wire:model.live.debounce.300ms="customerSearch" wire:model.blur="customerName" type="text" placeholder="Ketik nama atau no telp..." 
-                            class="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm font-medium transition placeholder-gray-400">
-                        @if(count($customerSuggestions) > 0)
-                            <div class="absolute z-50 mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 py-2 max-h-60 overflow-y-auto">
-                                @foreach($customerSuggestions as $suggestion)
-                                    <button wire:click="selectCustomer({{ $suggestion['id'] }}, '{{ addslashes($suggestion['name']) }}')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition flex justify-between items-center group">
-                                        <div class="font-bold">{{ $suggestion['name'] }}</div>
-                                        <div class="text-xs text-gray-400 group-hover:text-orange-400 font-mono">{{ $suggestion['phone'] ?? '-' }}</div>
-                                    </button>
-                                @endforeach
-                            </div>
+                    <div class="flex items-center gap-2">
+                        <button wire:click="$set('showCustomerModal', true)" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-orange-500 hover:bg-orange-50 hover:border-orange-200 transition" title="Input pelanggan">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                        @if($selectedCustomerId || !empty($customerName))
+                            <button wire:click="clearCustomer" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition" title="Hapus pelanggan">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
                         @endif
                     </div>
-                    @if(!empty($customerSearch) && count($customerSuggestions) === 0)
-                        <input wire:model.live="customerPhone" type="text" placeholder="No. telepon (opsional)" class="mt-3 w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm font-medium transition placeholder-gray-400">
-                    @endif
                 </div>
-                @endif
             </div>
 
             {{-- Cart List --}}
@@ -316,21 +300,70 @@
                     </div>
                 </div>
 
-                <div class="mb-6">
-                    <h4 class="font-bold text-gray-900 mb-3 text-sm">Payment Method</h4>
-                    <div class="grid grid-cols-2 gap-3">
-                        @foreach(['cash' => ['name' => 'Cash', 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', 'color' => 'green'], 'qris' => ['name' => 'Qris', 'icon' => 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z', 'color' => 'blue']] as $method => $data)
-                            <button wire:click="$set('paymentMethod', '{{ $method }}')" class="flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all {{ $paymentMethod === $method ? 'border-orange-500 bg-orange-50/50 shadow-sm shadow-orange-500/10' : 'border-gray-100 bg-gray-50 hover:bg-gray-100' }}">
-                                <svg class="w-6 h-6 mb-2 text-{{ $data['color'] }}-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $data['icon'] }}"></path></svg>
-                                <span class="text-[11px] font-bold text-gray-700 uppercase tracking-wide">{{ $data['name'] }}</span>
-                            </button>
-                        @endforeach
+                <button wire:click="openPaymentModal" wire:loading.attr="disabled" @disabled(empty($cart) || $isProcessing) class="w-full bg-[#E55B13] text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-[#E55B13]/30 hover:bg-[#d44c0a] focus:outline-none focus:ring-4 focus:ring-orange-500/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed transition-all flex justify-center items-center text-lg transform active:scale-[0.98]">
+                    Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- PAYMENT MODAL --}}
+    @if($showPaymentModal)
+        <div class="fixed inset-0 z-[56] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm print:hidden"
+            onclick="if(event.target===this) @this.closePaymentModal()">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+                <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-2xl font-black text-gray-900">Checkout Pembayaran</h3>
+                        <p class="text-sm text-gray-500">Pilih metode bayar lalu konfirmasi transaksi.</p>
                     </div>
+                    <button wire:click="closePaymentModal" class="w-10 h-10 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+                    @error('general')
+                        <div class="bg-red-50 border border-red-200 p-3 rounded-xl text-sm text-red-700">{{ $message }}</div>
+                    @enderror
+
+                    <div class="bg-gray-50 rounded-2xl border border-gray-100 p-4">
+                        <h4 class="font-bold text-gray-900 mb-3">Rincian Keranjang</h4>
+                        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            @foreach($cart as $item)
+                                <div class="flex items-start justify-between text-sm">
+                                    <div class="min-w-0 pr-3">
+                                        <p class="font-semibold text-gray-900 truncate">{{ $item['name'] }}</p>
+                                        <p class="text-xs text-gray-500">{{ $item['quantity'] }} x Rp {{ number_format($item['price'], 0, ',', '.') }}</p>
+                                    </div>
+                                    <p class="font-bold text-gray-900 whitespace-nowrap">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</p>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
+                            <span class="font-bold text-gray-700">Total</span>
+                            <span class="font-black text-xl text-gray-900">Rp {{ number_format($this->total, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-gray-900 mb-3 text-sm">Payment Method</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            @foreach(['cash' => ['name' => 'Cash', 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', 'color' => 'green'], 'qris' => ['name' => 'Qris', 'icon' => 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z', 'color' => 'blue']] as $method => $data)
+                                <button wire:click="$set('paymentMethod', '{{ $method }}')" class="flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all {{ $paymentMethod === $method ? 'border-orange-500 bg-orange-50/50 shadow-sm shadow-orange-500/10' : 'border-gray-100 bg-gray-50 hover:bg-gray-100' }}">
+                                    <svg class="w-6 h-6 mb-2 text-{{ $data['color'] }}-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $data['icon'] }}"></path></svg>
+                                    <span class="text-[11px] font-bold text-gray-700 uppercase tracking-wide">{{ $data['name'] }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
                     @if($paymentMethod === 'cash')
-                        <div class="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100" x-data="inputRupiah(@entangle('paymentAmount').live)">
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100" x-data="inputRupiah(@entangle('paymentAmount').live)">
                             <label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase tracking-wider">Jumlah Uang Tunai</label>
                             <input type="text" x-model="nilaiTampil" inputmode="numeric" class="w-full text-xl font-black p-3 border border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 text-right bg-white shadow-sm transition" placeholder="Rp 0">
                             @error('paymentAmount') <p class="mt-2 text-xs font-bold text-red-600 bg-red-50 p-2 rounded-lg">{{ $message }}</p> @enderror
+
                             @if(!empty($paymentAmount) && (float)$paymentAmount > 0 && $this->total > 0)
                                 @if((float)$paymentAmount > $this->total)
                                     <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
@@ -353,18 +386,64 @@
                     @endif
                 </div>
 
-                <button wire:click="processTransaction" wire:loading.attr="disabled" @disabled(empty($cart) || ($paymentMethod === 'cash' && $paymentAmount < $this->total) || $isProcessing) class="w-full bg-[#E55B13] text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-[#E55B13]/30 hover:bg-[#d44c0a] focus:outline-none focus:ring-4 focus:ring-orange-500/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed transition-all flex justify-center items-center text-lg transform active:scale-[0.98]">
-                    <span wire:loading.remove wire:target="processTransaction">Place Order</span>
-                    <span wire:loading wire:target="processTransaction" class="flex items-center">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        Processing...
-                    </span>
-                </button>
+                <div class="p-6 bg-gray-50 border-t border-gray-100 grid grid-cols-2 gap-3">
+                    <button wire:click="closePaymentModal" class="w-full rounded-xl border-2 border-gray-200 px-6 py-4 bg-white text-base font-bold text-gray-700 hover:bg-gray-50 transition">
+                        Batal
+                    </button>
+                    <button wire:click="processTransaction" wire:loading.attr="disabled" wire:target="processTransaction" @disabled($paymentMethod === 'cash' && $paymentAmount < $this->total) class="w-full rounded-xl px-6 py-4 bg-[#E55B13] text-base font-bold text-white hover:bg-[#d44c0a] transition shadow-lg shadow-[#E55B13]/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span wire:loading.remove wire:target="processTransaction">Konfirmasi Bayar</span>
+                        <span wire:loading wire:target="processTransaction">Memproses...</span>
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
+    @endif
 
     {{-- TRANSACTION SUCCESS MODAL --}}
+    @if($showCustomerModal)
+        <div class="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm print:hidden"
+            onclick="if(event.target===this) @this.set('showCustomerModal', false)">
+            <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="text-xl font-black text-gray-900">Input Pelanggan</h3>
+                    <button wire:click="$set('showCustomerModal', false)" class="w-9 h-9 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <input wire:model.live.debounce.300ms="customerSearch" wire:model.blur="customerName" type="text" placeholder="Ketik nama atau no telp..."
+                        class="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm font-medium transition placeholder-gray-400">
+
+                    @if(count($customerSuggestions) > 0)
+                        <div class="mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 py-2 max-h-60 overflow-y-auto">
+                            @foreach($customerSuggestions as $suggestion)
+                                <button wire:click="selectCustomer({{ $suggestion['id'] }}, '{{ addslashes($suggestion['name']) }}')" class="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition flex justify-between items-center group">
+                                    <div class="font-bold">{{ $suggestion['name'] }}</div>
+                                    <div class="text-xs text-gray-400 group-hover:text-orange-400 font-mono">{{ $suggestion['phone'] ?? '-' }}</div>
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                @if(!empty($customerSearch) && count($customerSuggestions) === 0)
+                    <input wire:model.live="customerPhone" type="text" placeholder="No. telepon (opsional)" class="mt-3 w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 text-sm font-medium transition placeholder-gray-400">
+                    <p class="mt-2 text-xs text-gray-500">Nama ini akan disimpan sebagai pelanggan baru saat transaksi diproses.</p>
+                @endif
+
+                <div class="mt-6 grid grid-cols-2 gap-3">
+                    <button wire:click="$set('showCustomerModal', false)" class="w-full rounded-xl border-2 border-gray-200 px-5 py-3 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 transition">
+                        Tutup
+                    </button>
+                    <button wire:click="$set('showCustomerModal', false)" class="w-full rounded-xl px-5 py-3 bg-orange-600 text-sm font-bold text-white hover:bg-orange-700 transition">
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div id="transaction-modal" style="display: none;" onclick="if(event.target===this) closeTransactionModal()"
         class="fixed inset-0 z-50 print:hidden flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm"
         aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -398,7 +477,7 @@
     {{-- CASH MOVEMENT MODAL --}}
     @if($showCashMovementModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm print:hidden"
-             onclick="if(event.target===this) @this.set('showCashMovementModal', false)">
+            onclick="if(event.target===this) @this.set('showCashMovementModal', false)">
             <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
                 <h3 class="text-2xl font-black text-gray-900 mb-6">Cash Movement</h3>
 

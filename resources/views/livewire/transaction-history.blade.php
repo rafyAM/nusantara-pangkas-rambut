@@ -70,10 +70,6 @@
                             <option value="all">Semua Metode</option>
                             <option value="cash">Tunai</option>
                             <option value="qris">QRIS</option>
-                            <option value="transfer">Transfer</option>
-                            <option value="e_wallet">E-Wallet</option>
-                            <option value="debit_card">Kartu Debit</option>
-                            <option value="credit_card">Kartu Kredit</option>
                         </select>
                     </div>
 
@@ -81,10 +77,10 @@
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">Urutkan</label>
                         <select wire:model.live="sortBy" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 transition">
-                            <option value="recent">Terbaru</option>
-                            <option value="oldest">Tertua</option>
-                            <option value="highest">Tertinggi</option>
-                            <option value="lowest">Terendah</option>
+                            <option value="recent">Recent</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="highest">Highest</option>
+                            <option value="lowest">Lowest</option>
                         </select>
                     </div>
 
@@ -155,7 +151,7 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-md font-bold text-sm">
-                                            {{ $transaction->transactionItems->count() }} item
+                                            {{ $transaction->items->count() }} item
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">

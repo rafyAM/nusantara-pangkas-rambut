@@ -32,6 +32,7 @@ class PosKasir extends Component
     public string $customerPhone = '';
     public array $customerSuggestions = [];
     public ?int $selectedCustomerId = null;
+    public bool $showCustomerModal = false;
 
     // --- Reservasi ---
     public ?int $processedReservationId = null;
@@ -41,6 +42,7 @@ class PosKasir extends Component
     public float $discountValue = 0;
     public string $paymentMethod = 'cash';
     public ?float $paymentAmount = null;
+    public bool $showPaymentModal = false;
 
     // --- Transaksi Selesai ---
     public bool $isProcessing = false;
@@ -426,6 +428,7 @@ class PosKasir extends Component
         $this->customerName = $name;
         $this->customerSearch = '';
         $this->customerSuggestions = [];
+        $this->showCustomerModal = false;
     }
 
     public function clearCustomer()
@@ -434,6 +437,8 @@ class PosKasir extends Component
         $this->customerName = '';
         $this->customerSearch = '';
         $this->customerPhone = '';
+        $this->customerSuggestions = [];
+        $this->showCustomerModal = false;
     }
 
     // =============================================
@@ -552,6 +557,21 @@ class PosKasir extends Component
 
         $this->cart[$cartKey]['quantity'] = $qty;
         $this->cart[$cartKey]['subtotal'] = $qty * $this->cart[$cartKey]['price'];
+    }
+
+    public function openPaymentModal()
+    {
+        if (empty($this->cart)) {
+            return;
+        }
+
+        $this->resetErrorBag('paymentAmount');
+        $this->showPaymentModal = true;
+    }
+
+    public function closePaymentModal()
+    {
+        $this->showPaymentModal = false;
     }
 
     // =============================================
@@ -728,6 +748,7 @@ class PosKasir extends Component
             $this->discountValue = 0;
             $this->discountType = 'nominal';
             $this->processedReservationId = null;
+            $this->showPaymentModal = false;
 
             $this->dispatch('transaction-completed');
         } catch (\Exception $e) {
