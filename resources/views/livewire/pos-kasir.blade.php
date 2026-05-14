@@ -90,49 +90,7 @@
                 </div>
             </div>
 
-            {{-- Order List --}}
-            @if(count($reservationsData) > 0)
-            <div class="mb-8">
-                <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-baseline gap-2">Order List <span class="text-sm font-medium text-gray-500">({{ count($reservationsData) }} Orders)</span></h2>
-                <div class="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x">
-                    @foreach($reservationsData as $reservation)
-                        <div wire:key="reservation-{{ $reservation->id }}" class="bg-white border border-gray-100 rounded-2xl p-5 min-w-[300px] shadow-sm flex flex-col justify-between hover:shadow-md hover:border-orange-300 transition cursor-pointer snap-start" wire:click="loadReservationToCart({{ $reservation->id }})">
-                            <div class="flex justify-between items-start mb-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600 border border-green-100">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                    </div>
-                                    <div>
-                                        <span class="font-bold text-gray-900 block truncate w-32">{{ $reservation->customer?->name ?? 'Pelanggan Umum' }}</span>
-                                        <span class="text-xs font-medium text-gray-500">{{ $reservation->reservation_time->format('H:i') }} WIB</span>
-                                    </div>
-                                </div>
-                                <span class="text-gray-400 text-sm font-mono font-medium">#{{ str_pad($reservation->id, 3, '0', STR_PAD_LEFT) }}</span>
-                            </div>
-                            
-                            <div class="text-sm text-gray-600 mb-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-medium">{{ $reservation->services->count() }} Items</span>
-                                    <span class="text-gray-300">&bull;</span>
-                                    <span class="font-medium text-gray-500 truncate">{{ $reservation->employee?->name ?? 'Bebas' }}</span>
-                                </div>
-                                <p class="text-xs truncate text-gray-500">Order: {{ $reservation->services->pluck('name')->join(', ') }}</p>
-                            </div>
 
-                            <div class="flex gap-2 mt-auto">
-                                @if($reservation->status === 'pending')
-                                    <span class="text-xs bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg font-bold border border-yellow-200">Pending</span>
-                                    <button wire:click.stop="approveReservation({{ $reservation->id }})" class="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1.5 rounded-lg font-bold transition ml-auto border border-orange-200">Hadir</button>
-                                    <button wire:click.stop="cancelReservation({{ $reservation->id }})" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg font-bold transition border border-red-200">Batal</button>
-                                @elseif($reservation->status === 'arrived')
-                                    <span class="text-xs bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg font-bold border border-orange-200">Being Processed</span>
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
 
             {{-- Menu Section --}}
             <div class="flex flex-col flex-1 overflow-hidden min-h-0">

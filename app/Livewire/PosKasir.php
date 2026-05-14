@@ -71,6 +71,11 @@ class PosKasir extends Component
     public function mount()
     {
         $this->loadPreviousShiftHandover();
+        
+        $reservationId = request()->query('reservation_id');
+        if ($reservationId) {
+            $this->loadReservationToCart($reservationId);
+        }
     }
 
     protected function loadPreviousShiftHandover()
