@@ -225,7 +225,7 @@ test('cashier can close an active shift', function () {
         ->set('closingNotes', 'All good')
         ->call('closeShift')
         ->assertSet('showCloseShiftModal', false)
-        ->assertDispatched('shift-closed');
+        ->assertRedirect('admin/login');
 
     $shift = CashierShift::where('user_id', $user->id)->latest()->first();
     expect($shift->status)->toBe('closed');

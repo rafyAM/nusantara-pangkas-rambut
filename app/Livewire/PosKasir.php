@@ -319,7 +319,7 @@ class PosKasir extends Component
 
         $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
 
-        $this->dispatch('shift-closed');
+        // $this->dispatch('shift-closed');
 
         $this->showCloseShiftModal = false;
         $this->actualCash = 0;
