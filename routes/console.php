@@ -15,7 +15,7 @@ Artisan::command('inspire', function () {
 
 // Auto cancel reservasi jika telat >10 menit (dari jam booking belum di-approve kasir) 
 Schedule::call(function () {
-    $threshold = Carbon::now()->subMinutes(5); // memberi kelonggaran 10 menit
+    $threshold = Carbon::now()->subMinutes(1); // memberi kelonggaran 1 menit
 
     $expiredReservations = Reservation::with('customer')
         ->where('status', 'pending')
@@ -36,14 +36,14 @@ Schedule::call(function () {
     }
 
     if ($count > 0) {
-        info("Auto-cancelled {$count} reservations due to 10 mins late.");
+        info("Auto-cancelled {$count} reservations due to 1 mins late.");
     }
 })->everyMinute();
 
-// Pengingat lewat Web Push Notification (PWA) 5 menit sebelum jadwal tiba
+// Pengingat lewat Web Push Notification (PWA) 9 menit sebelum jadwal tiba
 Schedule::call(function () {
-    $targetTimeStart = Carbon::now()->addMinutes(5)->startOfMinute();
-    $targetTimeEnd = Carbon::now()->addMinutes(5)->endOfMinute();
+    $targetTimeStart = Carbon::now()->addMinutes(9)->startOfMinute();
+    $targetTimeEnd = Carbon::now()->addMinutes(9)->endOfMinute();
 
     $upcoming = Reservation::with('customer')
         ->where('status', 'pending')
@@ -54,7 +54,7 @@ Schedule::call(function () {
         if ($res->customer) {
             try {
                 $res->customer->notify(new \App\Notifications\ReservationReminder($res));
-                info("Sent 5-min reminder for reservation ID {$res->id}");
+                info("Sent 9-min reminder for reservation ID {$res->id}");
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Reminder notify failed: ' . $e->getMessage());
             }
