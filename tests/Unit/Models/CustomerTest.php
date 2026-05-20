@@ -4,6 +4,7 @@ use App\Models\Customer;
 use App\Models\Reservation;
 use Illuminate\Support\Facades\Schema;
 
+// 1. Memastikan tabel customers di database memiliki kolom yang dibutuhkan sistem
 test('it has the correct database table schema', function () {
     expect(Schema::hasTable('customers'))->toBeTrue();
     expect(Schema::hasColumns('customers', [
@@ -11,6 +12,7 @@ test('it has the correct database table schema', function () {
     ]))->toBeTrue();
 });
 
+// 2. Memastikan model Customer bisa dibuat dan disimpan dengan data valid
 test('it can create a customer successfully', function () {
     $customer = Customer::factory()->create([
         'name' => 'Budi Santoso',
@@ -23,6 +25,7 @@ test('it can create a customer successfully', function () {
     expect($customer->loyalty_points)->toBe(0);
 });
 
+// 3. Memastikan satu Customer bisa memiliki banyak riwayat Reservasi (Relasi One-to-Many)
 test('it has many reservations', function () {
     $customer = Customer::factory()->create();
     $reservation = Reservation::factory()->create(['customer_id' => $customer->id]);
@@ -31,6 +34,7 @@ test('it has many reservations', function () {
     expect($customer->reservations->first()->id)->toBe($reservation->id);
 });
 
+// 4. [PENTING UNTUK SKRIPSI] Memastikan model Customer mendukung penyimpanan endpoint VAPID untuk Notifikasi Web Push
 test('it can save push subscriptions for VAPID', function () {
     $customer = Customer::factory()->create();
 

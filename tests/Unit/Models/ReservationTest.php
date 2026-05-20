@@ -8,6 +8,7 @@ use App\Models\Service;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
 
+// 1. Memastikan tabel reservations memiliki struktur kolom yang sesuai
 test('it has the correct database table schema', function () {
     expect(Schema::hasTable('reservations'))->toBeTrue();
     expect(Schema::hasColumns('reservations', [
@@ -15,6 +16,7 @@ test('it has the correct database table schema', function () {
     ]))->toBeTrue();
 });
 
+// 2. Memastikan pembuatan reservasi default bersatus 'pending' berhasil
 test('it successfully creates a pending reservation', function () {
     $customer = Customer::factory()->create();
     $branch = Branch::factory()->create();
@@ -33,6 +35,7 @@ test('it successfully creates a pending reservation', function () {
     expect($reservation->branch_id)->toBe($branch->id);
 });
 
+// 3. Memastikan satu reservasi bisa memesan banyak layanan (misal: Potong Rambut + Cuci Muka)
 test('it correctly relates to multiple services', function () {
     $reservation = Reservation::factory()->create();
     $service1 = Service::factory()->create();
@@ -43,6 +46,7 @@ test('it correctly relates to multiple services', function () {
     expect($reservation->services)->toHaveCount(2);
 });
 
+// 4. Memastikan logika bentrok jadwal bekerja: mencegah 2 pelanggan mem-booking 1 Kapster di jam yang sama
 test('it validates time correctly to prevent conflict (kapster collision)', function () {
     $branch = Branch::factory()->create();
     $employee = Employee::factory()->create(['branch_id' => $branch->id]);
@@ -65,6 +69,7 @@ test('it validates time correctly to prevent conflict (kapster collision)', func
     expect($isConflict)->toBeTrue();
 });
 
+// 5. [PENTING UNTUK SKRIPSI] Mensimulasikan logika pembatalan otomatis (Auto-cancel) yang nantinya memicu notifikasi ReservationCancelled
 test('it simulates auto cancel when late threshold passed', function () {
     $reservation = Reservation::factory()->create([
         'reservation_time' => now()->subMinutes(15), // Telat 15 menit
