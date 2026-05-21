@@ -23,4 +23,22 @@ class PushSubscriptionController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function subscribeUser(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = auth()->user(); // Auth default web/user
+
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $user->updatePushSubscription(
+            $request->endpoint,
+            $request->keys['p256dh'] ?? null,
+            $request->keys['auth'] ?? null
+        );
+
+        return response()->json(['success' => true]);
+    }
 }

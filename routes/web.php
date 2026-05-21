@@ -24,6 +24,10 @@ Route::post('/reservations', [CustomerDashboardController::class, 'store'])
     ->middleware(['auth:customer', 'verified', 'throttle:5,1'])
     ->name('reservations.store');
 
+Route::patch('/reservations/{reservation}/cancel', [CustomerDashboardController::class, 'cancel'])
+    ->middleware(['auth:customer', 'verified'])
+    ->name('reservations.cancel');
+
 Route::post('/push/subscribe', [PushSubscriptionController::class, 'subscribe'])
     ->middleware(['auth:customer'])
     ->name('push.subscribe');
@@ -32,6 +36,9 @@ Route::middleware(['auth', 'role:cashier'])->group(function () {
     Route::get('/kasir/pos', PosKasir::class)->name('kasir.pos');
     Route::get('/kasir/transaction-history', TransactionHistoryPage::class)->name('kasir.transaction-history');
     Route::get('/kasir/reservations', KasirReservation::class)->name('kasir.reservations');
+    
+    // Endpoint VAPID khusus kasir
+    Route::post('/kasir/push/subscribe', [PushSubscriptionController::class, 'subscribeUser'])->name('kasir.push.subscribe');
 });
 
 Route::middleware('auth:customer')->group(function () {
