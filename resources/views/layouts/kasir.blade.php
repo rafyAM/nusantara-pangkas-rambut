@@ -140,6 +140,65 @@
     </div>
 
     @livewireScripts
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                if ('Notification' in window) {
+                    Notification.requestPermission().then(function(permission) {
+                        if (permission === 'granted') initPushKasir();
+                    });
+                }
+            }).catch(function(err) {
+                console.log('Service worker registration failed:', err);
+            });
+        }
+
+        function initPushKasir() {
+            if (!('PushManager' in window)) return;
+            navigator.serviceWorker.ready.then(function(registration) {
+                registration.pushManager.getSubscription().then(function(subscription) {
+                    if (!subscription) subscribeKasir();
+                    else sendSubscriptionToKasirBackend(subscription);
+                });
+            });
+        }
+
+        function subscribeKasir() {
+            navigator.serviceWorker.ready.then(function(registration) {
+                const vapidPublicKey = "{{ config('webpush.vapid.public_key') }}";
+                if (!vapidPublicKey) return;
+                const applicationServerKey = urlB64ToUint8Array(vapidPublicKey);
+                registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: applicationServerKey
+                }).then(sendSubscriptionToKasirBackend)
+                  .catch(function(err) { console.log('Failed to subscribe kasir:', err); });
+            });
+        }
+
+        function sendSubscriptionToKasirBackend(subscription) {
+            fetch('{{ route("kasir.push.subscribe") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(subscription)
+            });
+        }
+
+        function urlB64ToUint8Array(base64String) {
+            if (!base64String) return new Uint8Array(0);
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+            return outputArray;
+        }
+    </script>
 </body>
 
 </html>

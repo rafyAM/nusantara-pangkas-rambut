@@ -302,7 +302,7 @@
                                 <span class="text-xl text-gray-500">{{ $reservation->reservation_time->format('d') }}</span>
                             </div>
 
-                            <div>
+                            <div class="flex-1">
                                 <h3 class="text-white font-semibold text-lg">
                                     {{ $reservation->reservation_time->format('H:i') }} WIB
                                 </h3>
@@ -312,6 +312,16 @@
                                 <p class="text-gray-500 text-sm mt-1">
                                     Kapster: {{ $reservation->employee?->name ?? 'Siapa saja' }}
                                 </p>
+                                <div class="mt-4">
+                                    <form action="{{ route('reservations.cancel', $reservation->id) }}" method="POST" onsubmit="return confirm('Yakin ingin membatalkan jadwal ini?');">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="text-xs px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white transition-colors duration-200 flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                            Batal Mandiri
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
