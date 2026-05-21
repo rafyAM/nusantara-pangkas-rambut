@@ -166,4 +166,36 @@ class CustomerDashboardController extends Controller
 
         return view('history', compact('history'));
     }
+
+    public function cancel(Reservation $reservation)
+    {
+        /** @var \App\Models\Customer $customer */
+        $customer = auth()->guard('customer')->user();
+
+        // Validasi kepemilikan
+        if ($reservation->customer_id !== $customer->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Hanya bisa dibatalkan jika masih pending atau arrived
+        if (!in_array($reservation->status, ['pending', 'arrived'])) {
+            return back()->withErrors(['error' => 'Reservasi ini tidak dapat dibatalkan.']);
+        }
+
+        $reservation->update(['status' => 'cancelled']);
+
+        // Cari kasir yang bertugas di cabang tersebut
+        $cashiers = \App\Models\User::role('cashier')
+            ->whereHas('branches', function ($query) use ($reservation) {
+                $query->where('branches.id', $reservation->branch_id);
+            })->get();
+
+        // Kirim Notifikasi Web Push ke para kasir cabang tersebut
+        if ($cashiers->isNotEmpty()) {
+            $notification = new \App\Notifications\ReservationCancelledByCustomer($reservation);
+            \Illuminate\Support\Facades\Notification::send($cashiers, $notification);
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Reservasi berhasil dibatalkan secara mandiri.');
+    }
 }
