@@ -13,7 +13,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Auto cancel reservasi jika telat >10 menit (dari jam booking belum di-approve kasir) 
+// Auto cancel reservasi jika telat >1 menit (dari jam booking belum di-approve kasir) 
 Schedule::call(function () {
     $threshold = Carbon::now()->subMinutes(1); // memberi kelonggaran 1 menit
 
