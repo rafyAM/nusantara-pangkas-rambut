@@ -69,7 +69,7 @@ test('it validates time correctly to prevent conflict (kapster collision)', func
     expect($isConflict)->toBeTrue();
 });
 
-// 5. [PENTING UNTUK SKRIPSI] Mensimulasikan logika pembatalan otomatis (Auto-cancel) yang nantinya memicu notifikasi ReservationCancelled
+// 5.  Mensimulasikan logika pembatalan otomatis (Auto-cancel) yang nantinya memicu notifikasi ReservationCancelled
 test('it simulates auto cancel when late threshold passed', function () {
     $reservation = Reservation::factory()->create([
         'reservation_time' => now()->subMinutes(15), // Telat 15 menit

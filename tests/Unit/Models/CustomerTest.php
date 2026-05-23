@@ -34,7 +34,7 @@ test('it has many reservations', function () {
     expect($customer->reservations->first()->id)->toBe($reservation->id);
 });
 
-// 4. [PENTING UNTUK SKRIPSI] Memastikan model Customer mendukung penyimpanan endpoint VAPID untuk Notifikasi Web Push
+// 4.  Memastikan model Customer mendukung penyimpanan endpoint VAPID untuk Notifikasi Web Push
 test('it can save push subscriptions for VAPID', function () {
     $customer = Customer::factory()->create();
 
