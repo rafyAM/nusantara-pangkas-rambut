@@ -1,0 +1,19 @@
+node_modules
+vendor
+.git
+.env
+.env.*
+!.env.docker
+public/hot
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+*.log
+jmeter
+jmeter.log
+results
+skripsi
+tests
+Dockerfile copy
