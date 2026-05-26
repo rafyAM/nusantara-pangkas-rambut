@@ -44,16 +44,17 @@ fi
 
 echo "==> Verifying ACME challenge path is reachable..."
 TEST_TOKEN=".acme-preflight-$$"
-docker compose exec -T certbot sh -c "echo ok > /var/www/certbot/$TEST_TOKEN" \
+TEST_PATH="/var/www/certbot/.well-known/acme-challenge/${TEST_TOKEN}"
+docker compose exec -T certbot sh -c "mkdir -p /var/www/certbot/.well-known/acme-challenge && echo ok > ${TEST_PATH}" \
     || { echo "fatal: cannot write to certbot webroot volume" >&2; exit 1; }
 if ! curl -fsS "http://${DOMAIN}/.well-known/acme-challenge/${TEST_TOKEN}" >/dev/null; then
-    docker compose exec -T certbot rm -f "/var/www/certbot/$TEST_TOKEN" || true
+    docker compose exec -T certbot rm -f "${TEST_PATH}" || true
     echo "fatal: GET http://${DOMAIN}/.well-known/acme-challenge/${TEST_TOKEN} failed." >&2
     echo "  Check: (1) DNS A record points to this VM, (2) port 80 reachable from internet," >&2
     echo "  (3) nginx is serving the ACME location (see nginx.conf)." >&2
     exit 1
 fi
-docker compose exec -T certbot rm -f "/var/www/certbot/$TEST_TOKEN" || true
+docker compose exec -T certbot rm -f "${TEST_PATH}" || true
 echo "  -> ACME path OK"
 
 # 2. Issue the certificate.
