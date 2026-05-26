@@ -65,7 +65,7 @@ if [[ "$STAGING" == "--staging" ]]; then
 fi
 
 echo "==> Requesting certificate for $DOMAIN..."
-docker compose run --rm certbot certonly \
+docker compose run --rm --entrypoint certbot certbot certonly \
     --webroot -w /var/www/certbot \
     -d "$DOMAIN" \
     --email "$EMAIL" \
