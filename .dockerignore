@@ -4,7 +4,6 @@ vendor
 .env
 .env.*
 !.env.docker
-public/hot
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
