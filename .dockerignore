@@ -1,19 +1,62 @@
+# VCS / IDE
+.git
+.gitignore
+.gitattributes
+.editorconfig
+.idea
+.vscode
+.fleet
+.nova
+.zed
+.claude
+.gemini
+
+# Dependencies (rebuilt inside image)
 node_modules
 vendor
+
+# Build artifacts
+public/build
+public/hot
 public/storage
-.git
+
+# Environment / secrets — never bake into image
 .env
 .env.*
-!.env.docker
+.env.docker
+.env.backup
+.env.production
+
+# Storage runtime (created by entrypoint)
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
+storage/framework/testing/*
+storage/app/public/*
 bootstrap/cache/*
-*.log
+
+# Tests, benchmarks, thesis material
+tests
 jmeter
 jmeter.log
 results
 skripsi
-tests
+
+# Docs and misc
+README.md
+*.md
+!resources/**/*.md
+
+# Logs and packaging
+*.log
+*.tar
+*.tar.gz
+*.zip
 Dockerfile copy
+Dockerfile.bak
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db

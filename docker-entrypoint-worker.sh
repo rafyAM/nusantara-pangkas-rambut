@@ -1,25 +1,23 @@
 #!/bin/bash
+set -euo pipefail
 
-set -e
+echo "==> Boot: worker"
 
-if [ ! -f /var/www/.env ]; then
-    cp /var/www/.env.docker /var/www/.env
-fi
+: "${DB_HOST:?DB_HOST not set}"
+: "${REDIS_HOST:?REDIS_HOST not set}"
 
-export $(grep -v '^#' /var/www/.env | grep -v '^$' | xargs)
-
-echo "==> Menunggu database siap... (host: ${DB_HOST})"
+echo "==> Waiting for database at ${DB_HOST}:${DB_PORT:-3306}..."
 until php -r "new PDO('mysql:host=${DB_HOST};port=${DB_PORT:-3306};dbname=${DB_DATABASE}', '${DB_USERNAME}', '${DB_PASSWORD}');" 2>/dev/null; do
-    echo "  -> Database belum siap, tunggu 2 detik..."
+    echo "  -> db not ready, sleeping 2s..."
     sleep 2
 done
-echo "  -> Database siap!"
+echo "  -> db ready"
 
-echo "==> Menunggu Redis siap... (host: ${REDIS_HOST})"
-until (echo > /dev/tcp/${REDIS_HOST}/${REDIS_PORT:-6379}) 2>/dev/null; do
-    echo "  -> Redis belum siap, tunggu 2 detik..."
+echo "==> Waiting for Redis at ${REDIS_HOST}:${REDIS_PORT:-6379}..."
+until nc -z "${REDIS_HOST}" "${REDIS_PORT:-6379}" 2>/dev/null; do
+    echo "  -> redis not ready, sleeping 2s..."
     sleep 2
 done
-echo "  -> Redis siap!"
+echo "  -> redis ready"
 
 exec "$@"
