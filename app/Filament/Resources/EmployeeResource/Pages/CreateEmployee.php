@@ -23,6 +23,10 @@ class CreateEmployee extends CreateRecord
 
         $this->assignRoleToUser($user, $data['position']);
 
+        if (isset($data['branch_id'])) {
+            $user->branches()->syncWithoutDetaching([$data['branch_id']]);
+        }
+
         unset($data['password']);
 
         $data['user_id'] = $user->id;

@@ -43,7 +43,12 @@ class EditEmployee extends EditRecord
 
         $this->assignRoleToUser($user, $data['position']);
 
-        unset($data['password']);
+        if (isset($data['branch_id'])) {
+            $user->branches()->syncWithoutDetaching([$data['branch_id']]);
+        }
+
+        // 3. Update Employee
+        unset($data['password']); // Remove from employee data
 
         $record->update($data);
 
