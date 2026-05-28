@@ -186,8 +186,12 @@ class CustomerDashboardController extends Controller
 
         // Cari kasir yang bertugas di cabang tersebut
         $cashiers = \App\Models\User::role('cashier')
-            ->whereHas('branches', function ($query) use ($reservation) {
-                $query->where('branches.id', $reservation->branch_id);
+            ->where(function ($query) use ($reservation) {
+                $query->whereHas('branches', function ($q) use ($reservation) {
+                    $q->where('branches.id', $reservation->branch_id);
+                })->orWhereHas('employee', function ($q) use ($reservation) {
+                    $q->where('branch_id', $reservation->branch_id);
+                });
             })->get();
 
         // Kirim Notifikasi Web Push ke para kasir cabang tersebut
