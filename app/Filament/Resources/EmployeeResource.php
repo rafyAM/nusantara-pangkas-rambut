@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EmployeeResource\Pages;
+use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\User;
 use Filament\Forms;
@@ -73,7 +74,22 @@ class EmployeeResource extends Resource
                             ->label('Email')
                             ->email()
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->unique(table: 'employees', column: 'email', ignoreRecord: true, modifyRuleUsing: fn ($rule) => $rule->whereNull('deleted_at'))
+                            ->validationMessages(['unique' => 'Email ini sudah digunakan oleh karyawan lain.'])
+                            ->rules([
+                                new class implements \Illuminate\Contracts\Validation\ValidationRule {
+                                    public function validate(string $attribute, mixed $value, \Closure $fail): void
+                                    {
+                                        if (empty($value)) {
+                                            return;
+                                        }
+                                        if (Customer::where('email', $value)->whereNull('deleted_at')->exists()) {
+                                            $fail('Email ini sudah digunakan oleh pelanggan.');
+                                        }
+                                    }
+                                },
+                            ]),
                         Forms\Components\Select::make('position')
                             ->label('Posisi')
                             ->options([
