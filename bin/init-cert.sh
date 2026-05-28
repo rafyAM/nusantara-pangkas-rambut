@@ -54,7 +54,11 @@ if ! curl -fsS "http://${DOMAIN}/.well-known/acme-challenge/${TEST_TOKEN}" >/dev
     echo "  (3) nginx is serving the ACME location (see nginx.conf)." >&2
     exit 1
 fi
+<<<<<<< HEAD
 docker compose exec -T certbot rm -f "${TEST_PATH}" || true
+=======
+docker compose exec -T certbot rm -f "/var/www/certbot/.well-known/acme-challenge/$TEST_TOKEN" || true
+>>>>>>> 74a3ea4 (refactor compose and init cert)
 echo "  -> ACME path OK"
 
 # 2. Issue the certificate.
