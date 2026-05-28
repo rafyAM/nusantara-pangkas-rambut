@@ -57,6 +57,10 @@ class EditEmployee extends EditRecord
         // 2. Sync Role
         $this->assignRoleToUser($user, $data['position']);
 
+        if (isset($data['branch_id'])) {
+            $user->branches()->syncWithoutDetaching([$data['branch_id']]);
+        }
+
         // 3. Update Employee
         unset($data['password']); // Remove from employee data
 
