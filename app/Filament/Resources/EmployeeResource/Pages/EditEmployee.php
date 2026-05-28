@@ -21,44 +21,29 @@ class EditEmployee extends EditRecord
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        // 1. Update Linked User if exists, or create if missing
         $user = $record->user;
 
-        if (!$user) {
-            // Create if not exists (handling edge case)
-            $user = User::firstOrCreate(
-                ['email' => $data['email']],
-                [
-                    'name' => $data['name'],
-                    // If creating new user here, password missing issue? 
-                    // Edit form might not have password filled.
-                    // Use default or random if not provided? 
-                    // For now, let's assume email matches existing or we create basic.
-                    'password' => '$2y$12$K.x.x.x', // generic hash or handle better
-                ]
-            );
+        if (! $user) {
+            $user = User::create([
+                'email' => $data['email'],
+                'name' => $data['name'],
+                'password' => $data['password'] ?? bcrypt(str()->random(32)),
+            ]);
             $record->user_id = $user->id;
         }
 
-        // Update User details
-        $userCheck = User::where('email', $data['email'])->where('id', '!=', $user->id)->first();
-        if (!$userCheck) {
-            $user->email = $data['email'];
-            $user->name = $data['name'];
-        }
+        $user->email = $data['email'];
+        $user->name = $data['name'];
 
-        // Update Password if provided
-        if (!empty($data['password'])) {
-            $user->password = $data['password']; // Already hashed
+        if (! empty($data['password'])) {
+            $user->password = $data['password'];
         }
 
         $user->save();
 
-        // 2. Sync Role
         $this->assignRoleToUser($user, $data['position']);
 
-        // 3. Update Employee
-        unset($data['password']); // Remove from employee data
+        unset($data['password']);
 
         $record->update($data);
 

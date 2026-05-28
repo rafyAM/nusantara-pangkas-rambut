@@ -14,14 +14,12 @@ class CreateEmployee extends CreateRecord
     protected static ?string $title = 'Tambah Karyawan';
 
     protected function handleRecordCreation(array $data): Model
-    { 
-        $user = User::firstOrCreate(
-            ['email' => $data['email']],
-            [
-                'name' => $data['name'],
-                'password' => $data['password'], 
-            ]
-        );
+    {
+        $user = User::create([
+            'email' => $data['email'],
+            'name' => $data['name'],
+            'password' => $data['password'],
+        ]);
 
         $this->assignRoleToUser($user, $data['position']);
 

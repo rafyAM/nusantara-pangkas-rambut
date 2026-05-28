@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\EmployeeResource\Pages;
 use App\Models\Employee;
 use App\Models\User;
+use App\Rules\UniqueEmail;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -73,7 +74,11 @@ class EmployeeResource extends Resource
                             ->label('Email')
                             ->email()
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->rule(fn (?Employee $record) => new UniqueEmail([
+                                'employee' => $record?->id,
+                                'user' => $record?->user_id,
+                            ])),
                         Forms\Components\Select::make('position')
                             ->label('Posisi')
                             ->options([

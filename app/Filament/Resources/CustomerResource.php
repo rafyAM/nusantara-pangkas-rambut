@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Models\Customer;
+use App\Rules\UniqueEmail;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -46,7 +47,8 @@ class CustomerResource extends Resource
                         Forms\Components\TextInput::make('email')
                             ->label('Email')
                             ->email()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->rule(fn (?Customer $record) => new UniqueEmail(['customer' => $record?->id])),
                         Forms\Components\Select::make('gender')
                             ->label('Jenis Kelamin')
                             ->options([
