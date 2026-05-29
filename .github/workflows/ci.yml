@@ -34,6 +34,16 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -84,6 +94,18 @@ jobs:
           echo "MySQL did not become ready" >&2
           exit 1
 
+      - name: Wait for Redis
+        run: |
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/6379) >/dev/null 2>&1; then
+              echo "Redis is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Redis did not become ready" >&2
+          exit 1
+
       - name: Run tests
         run: php artisan test --parallel || php artisan test
         env:
@@ -91,6 +113,10 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: ""
           DB_DATABASE: nusantara_test
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: null
+          REDIS_CLIENT: predis
 
       - name: Validate config caches build
         run: |
