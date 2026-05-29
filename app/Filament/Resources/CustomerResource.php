@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Models\Customer;
 use App\Rules\UniqueEmail;
-use App\Models\Employee;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -50,23 +49,6 @@ class CustomerResource extends Resource
                             ->email()
                             ->maxLength(255)
                             ->rule(fn (?Customer $record) => new UniqueEmail(['customer' => $record?->id])),
-                            ->nullable()
-                            ->maxLength(255)
-                            ->unique(table: 'customers', column: 'email', ignoreRecord: true, modifyRuleUsing: fn ($rule) => $rule->whereNull('deleted_at'))
-                            ->validationMessages(['unique' => 'Email ini sudah digunakan oleh pelanggan lain.'])
-                            ->rules([
-                                new class implements \Illuminate\Contracts\Validation\ValidationRule {
-                                    public function validate(string $attribute, mixed $value, \Closure $fail): void
-                                    {
-                                        if (empty($value)) {
-                                            return;
-                                        }
-                                        if (Employee::where('email', $value)->whereNull('deleted_at')->exists()) {
-                                            $fail('Email ini sudah digunakan oleh karyawan.');
-                                        }
-                                    }
-                                },
-                            ]),
                         Forms\Components\Select::make('gender')
                             ->label('Jenis Kelamin')
                             ->options([
