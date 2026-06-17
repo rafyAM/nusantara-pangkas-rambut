@@ -71,7 +71,7 @@ class CustomerDashboardController extends Controller
 
             // jam buka dan tutup barbershop
             $start = Carbon::parse($selectedDate . ' 08:00');
-            $end = Carbon::parse($selectedDate . ' 23:30');
+            $end = Carbon::parse($selectedDate . ' 21:30');
 
             while ($start < $end) {
                 $datetime = $start->format('Y-m-d H:i:s');
@@ -95,7 +95,7 @@ class CustomerDashboardController extends Controller
                     'available' => !$isBooked && !$isPast
                 ];
 
-                $start->addMinutes(10); // jarak waktu antar slot
+                $start->addMinutes(2); // jarak waktu antar slot
             }
         } // Tutup pengecekan if ($selectedEmployeeId)
 
