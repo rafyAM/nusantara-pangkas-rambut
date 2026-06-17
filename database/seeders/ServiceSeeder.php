@@ -7,21 +7,51 @@ use Illuminate\Database\Seeder;
 
 class ServiceSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $services = [
-            ['name' => 'Potong Rambut', 'price' => 35000, 'description' => 'Potong rambut standar dengan hasil rapi'],
-            ['name' => 'Cukur Jenggot', 'price' => 10000, 'description' => 'Rapikan dan cukur jenggot'],
-            ['name' => 'Gundul Licin', 'price' => 40000, 'description' => 'Penataan dan styling rambut'],
-            ['name' => 'Creambath', 'price' => 40000, 'description' => 'Perawatan creambath untuk kesehatan rambut'],
-            ['name' => 'Hair Coloring', 'price' => 40000, 'description' => 'Pewarnaan rambut profesional'],
+            [
+                'name' => 'Pangkas Rambut',
+                'price' => 40000,
+                'commission_owner_pct' => 52.50,
+                'commission_kapster_pct' => 47.50,
+                'description' => 'Potong rambut standar dengan hasil rapi',
+            ],
+            [
+                'name' => 'Gundul Licin',
+                'price' => 45000,
+                'commission_owner_pct' => 55.60,
+                'commission_kapster_pct' => 44.40,
+                'description' => 'Cukur gundul licin',
+            ],
+            [
+                'name' => 'Jenggot',
+                'price' => 10000,
+                'commission_owner_pct' => 0,
+                'commission_kapster_pct' => 100,
+                'description' => 'Rapikan dan cukur jenggot',
+            ],
+            [
+                'name' => 'Creambath',
+                'price' => 50000,
+                'commission_owner_pct' => 62,
+                'commission_kapster_pct' => 38,
+                'description' => 'Perawatan creambath untuk kesehatan rambut',
+            ],
+            [
+                'name' => 'Cat Rambut',
+                'price' => 50000,
+                'commission_owner_pct' => 62,
+                'commission_kapster_pct' => 38,
+                'description' => 'Pewarnaan rambut profesional (bahan ditanggung owner)',
+            ],
         ];
 
         foreach ($services as $service) {
-            Service::firstOrCreate(['name' => $service['name']], $service);
+            Service::updateOrCreate(
+                ['name' => $service['name']],
+                $service
+            );
         }
     }
 }

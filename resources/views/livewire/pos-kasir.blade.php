@@ -94,6 +94,36 @@
 
             {{-- Menu Section --}}
             <div class="flex flex-col flex-1 overflow-hidden min-h-0">
+                {{-- Antrian Aktif --}}
+                @if($this->activeQueues->isNotEmpty())
+                    <div class="mb-5">
+                        <h2 class="text-lg font-bold text-gray-900 flex items-baseline gap-2 mb-3">
+                            Antrian Aktif
+                            <span class="text-xs font-medium text-gray-500">({{ $this->activeQueues->count() }})</span>
+                        </h2>
+
+                        <div class="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+                            @foreach($this->activeQueues as $queue)
+                                <button type="button"
+                                    wire:click="loadReservationToCart({{ $queue->id }})"
+                                    class="flex-shrink-0 w-44 bg-white border-2 border-gray-100 hover:border-orange-400 hover:shadow-md hover:shadow-orange-500/10 rounded-2xl p-3 text-left transition group">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2 py-0.5 rounded">{{ $queue->queue_number }}</span>
+                                        <span class="text-[10px] font-bold text-gray-400">{{ $queue->reservation_time->format('H:i') }}</span>
+                                    </div>
+                                    <p class="font-bold text-sm text-gray-900 truncate">{{ $queue->display_name }}</p>
+                                    <p class="text-xs text-gray-500 truncate mt-0.5">
+                                        {{ $queue->services->pluck('name')->join(', ') ?: '—' }}
+                                    </p>
+                                    @if($queue->employee)
+                                        <p class="text-[10px] font-semibold text-gray-400 mt-1">Kapster: {{ $queue->employee->name }}</p>
+                                    @endif
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <h1 class="text-3xl font-bold text-gray-900 mb-4 flex items-baseline gap-2"> Service <span class="text-sm font-medium text-gray-500">({{ $this->services->count() + count($productsData) }} Items)</span></h1>
                 
                 {{-- Categories Tabs --}}
@@ -251,6 +281,22 @@
 
             {{-- Summary & Checkout --}}
             <div class="p-6 bg-white border-t border-gray-100 relative before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-white before:to-transparent before:pointer-events-none">
+                {{-- Pilih Kapster (1 transaksi = 1 kapster) --}}
+                @if($this->hasServiceInCart())
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Kapster</label>
+                        <select wire:model.live="cartKapsterId"
+                            class="w-full text-sm font-semibold border rounded-xl px-3 py-2.5 bg-white focus:ring-orange-500 focus:border-orange-500 transition
+                                {{ $errors->has('cartKapsterId') ? 'border-red-300 text-red-600' : 'border-gray-200 text-gray-800' }}">
+                            <option value="">— Pilih kapster —</option>
+                            @foreach($this->kapsters as $kapster)
+                                <option value="{{ $kapster->id }}">{{ $kapster->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('cartKapsterId') <p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p> @enderror
+                    </div>
+                @endif
+
                 <div class="space-y-3 mb-6">
                     <div class="flex justify-between text-gray-500 text-sm font-medium">
                         <span>Sub Total</span>
@@ -270,9 +316,19 @@
                     </div>
                 </div>
 
-                <button wire:click="openPaymentModal" wire:loading.attr="disabled" @disabled(empty($cart) || $isProcessing) class="w-full bg-[#E55B13] text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-[#E55B13]/30 hover:bg-[#d44c0a] focus:outline-none focus:ring-4 focus:ring-orange-500/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed transition-all flex justify-center items-center text-lg transform active:scale-[0.98]">
-                    Place Order
-                </button>
+                <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                    <button wire:click="createQueueFromCart" wire:loading.attr="disabled"
+                        @disabled(empty($cart) || $isProcessing)
+                        class="sm:col-span-2 w-full border-2 border-orange-500 bg-white text-orange-600 font-bold py-4 px-4 rounded-2xl hover:bg-orange-50 focus:outline-none focus:ring-4 focus:ring-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2 text-base transform active:scale-[0.98]">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Antrian
+                    </button>
+                    <button wire:click="openPaymentModal" wire:loading.attr="disabled"
+                        @disabled(empty($cart) || $isProcessing)
+                        class="sm:col-span-3 w-full bg-[#E55B13] text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-[#E55B13]/30 hover:bg-[#d44c0a] focus:outline-none focus:ring-4 focus:ring-orange-500/30 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed transition-all flex justify-center items-center text-lg transform active:scale-[0.98]">
+                        Bayar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -477,6 +533,18 @@
                             placeholder="Rp 0">
                     </div>
 
+                    @if($cashMovementType === 'out')
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">Kategori</label>
+                            <select wire:model="cashMovementCategory"
+                                class="w-full p-4 border border-gray-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 bg-gray-50 transition font-medium">
+                                @foreach(\App\Models\CashMovement::CATEGORIES as $catKey => $catLabel)
+                                    <option value="{{ $catKey }}">{{ $catLabel }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">Alasan</label>
                         <input wire:model="cashMovementReason" type="text"
@@ -599,6 +667,55 @@
                         </div>
                     </div>
 
+                    {{-- LAPORAN HARI OPERASIONAL --}}
+                    @php $bdr = $this->businessDayReport; @endphp
+                    @if($bdr)
+                        <div>
+                            <h4 class="font-black text-gray-900 mb-3 text-base flex items-center gap-2">
+                                Laporan Hari Operasional
+                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded {{ $bdr['tipe_hari'] === 'full_day' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
+                                    {{ $bdr['tipe_hari'] === 'full_day' ? 'Full Day' : 'Half Day' }} · {{ ($bdr['kasir_count'] ?? $bdr['shift_count']) }} kasir
+                                </span>
+                            </h4>
+
+                            {{-- Bagi Hasil ringkas --}}
+                            <div class="space-y-2 mb-3">
+                                <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 flex justify-between items-center">
+                                    <div>
+                                        <p class="text-[11px] font-black uppercase text-orange-600">Komisi Kapster</p>
+                                        <p class="text-[10px] text-orange-700/70 font-bold">{{ collect($bdr['komisi_per_kapster'])->pluck('name')->join(', ') ?: '—' }}</p>
+                                    </div>
+                                    <p class="font-black text-orange-700">Rp {{ number_format($bdr['total_komisi_kapster'], 0, ',', '.') }}</p>
+                                </div>
+                                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 flex justify-between items-center">
+                                    <div>
+                                        <p class="text-[11px] font-black uppercase text-blue-700">Fee Kasir</p>
+                                        <p class="text-[10px] text-blue-700/70 font-bold">{{ collect($bdr['fee_kasir_per_kasir'])->pluck('kasir_name')->join(', ') }}</p>
+                                    </div>
+                                    <p class="font-black text-blue-700">Rp {{ number_format($bdr['total_fee_kasir'], 0, ',', '.') }}</p>
+                                </div>
+                                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex justify-between items-center">
+                                    <p class="text-[11px] font-black uppercase text-emerald-700">Owner (Mama) Net</p>
+                                    <p class="font-black text-emerald-700 text-lg">Rp {{ number_format($bdr['total_owner_net'], 0, ',', '.') }}</p>
+                                </div>
+                            </div>
+
+                            @if(!empty($bdr['cash_out_by_category']))
+                                <div class="bg-gray-50 border border-gray-100 rounded-xl p-3 mb-3">
+                                    <p class="text-[11px] font-black uppercase text-gray-500 mb-2">Pengeluaran</p>
+                                    @foreach($bdr['cash_out_by_category'] as $cat)
+                                        <div class="flex justify-between text-xs font-semibold text-gray-700">
+                                            <span>{{ $cat['label'] }}</span>
+                                            <span>Rp {{ number_format($cat['amount'], 0, ',', '.') }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            <p class="text-[11px] text-gray-400 italic">Detail per shift × layanan akan tercetak di nota.</p>
+                        </div>
+                    @endif
+
                     {{-- Notes --}}
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Catatan (opsional)</label>
@@ -610,17 +727,22 @@
 
                 {{-- Footer --}}
                 <div class="p-6 bg-gray-50 border-t border-gray-100 flex flex-col gap-3">
-                    <button wire:click="closeShift" wire:confirm="Yakin tutup usaha ini?"
-                        class="w-full rounded-xl px-6 py-4 bg-red-600 text-base font-black text-white hover:bg-red-700 transition shadow-lg shadow-red-600/20">
-                        Tutup Usaha
+                    <button wire:click="tutupUsaha" wire:confirm="Tutup hari operasional dan cetak laporan? Aksi ini juga menutup shift saat ini."
+                        class="w-full rounded-xl px-6 py-4 bg-gray-900 text-base font-black text-white hover:bg-black transition shadow-lg shadow-gray-900/30 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        Tutup Usaha & Cetak
                     </button>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-3 gap-2">
                         <button wire:click="$set('showCloseShiftModal', false)"
-                            class="w-full rounded-xl border-2 border-gray-200 px-6 py-4 bg-white text-base font-bold text-gray-700 hover:bg-gray-50 transition">
+                            class="w-full rounded-xl border-2 border-gray-200 px-3 py-3 bg-white text-xs font-bold text-gray-700 hover:bg-gray-50 transition">
                             Batal
                         </button>
+                        <button wire:click="closeShift" wire:confirm="Tutup shift ini saja (tanpa simpan laporan hari)? Anda akan logout."
+                            class="w-full rounded-xl border-2 border-red-300 px-3 py-3 bg-red-50 text-xs font-bold text-red-600 hover:bg-red-100 transition">
+                            Tutup Shift
+                        </button>
                         <button wire:click="changeShift" wire:confirm="Yakin ingin ganti shift? Shift ini akan ditutup dan Anda akan di-logout."
-                            class="w-full rounded-xl border-2 border-orange-500 px-6 py-4 bg-orange-50 text-base font-bold text-orange-600 hover:bg-orange-100 transition">
+                            class="w-full rounded-xl border-2 border-orange-300 px-3 py-3 bg-orange-50 text-xs font-bold text-orange-600 hover:bg-orange-100 transition">
                             Ganti Shift
                         </button>
                     </div>
@@ -629,14 +751,28 @@
         </div>
     @endif
 
+
     {{-- ============================================= --}}
     {{-- PRINT AREA: RECEIPT --}}
     {{-- ============================================= --}}
     <style>
         @media print {
+            @page { margin: 4mm; }
             body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 100%; font-family: monospace; color: black; }
+            #print-area, #print-area *,
+            #print-queue-area, #print-queue-area *,
+            #print-bdr-area, #print-bdr-area * { visibility: visible; }
+            #print-area, #print-queue-area, #print-bdr-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                font-family: 'Courier New', monospace;
+                color: black;
+                box-sizing: border-box;
+            }
+            #print-area      { width: 80mm; font-size: 11px; line-height: 1.3; padding: 2mm; }
+            #print-queue-area { width: 58mm; font-size: 11px; line-height: 1.35; padding: 2mm; }
+            #print-bdr-area  { width: 58mm; font-size: 10px; line-height: 1.3; padding: 2mm; }
         }
         
         .hide-scrollbar::-webkit-scrollbar {
@@ -709,6 +845,161 @@ $printTx = \App\Models\Transaction::with(['items.service', 'items.product', 'cus
 @endif
 @endif
 
+{{-- PRINT AREA: NOTA ANTRIAN 58mm --}}
+@if($printQueueReservationId)
+@php
+$printQueue = \App\Models\Reservation::with(['customer', 'services', 'employee', 'branch'])
+    ->withoutGlobalScopes()
+    ->find($printQueueReservationId);
+@endphp
+@if($printQueue)
+<div id="print-queue-area" class="hidden print:block print:w-[58mm] print:p-2 print:text-sm print:mx-auto">
+    <div class="text-center font-bold text-xl mb-1">{{ $printQueue->branch->name ?? config('app.name') }}</div>
+    <div class="text-center text-xs mb-3 border-b border-dashed border-gray-400 pb-2">
+        {{ $printQueue->branch->address ?? '' }}
+    </div>
+
+    <div class="text-center mb-3">
+        <div class="text-xs">NOMOR ANTRIAN</div>
+        <div class="text-4xl font-black tracking-widest mt-1">{{ $printQueue->queue_number }}</div>
+    </div>
+
+    <div class="text-xs border-t border-b border-dashed border-gray-400 py-2 mb-2">
+        <div class="flex justify-between"><span>Tgl:</span><span>{{ $printQueue->reservation_time->format('d/m/Y H:i') }}</span></div>
+        <div class="flex justify-between"><span>Nama:</span><span>{{ $printQueue->display_name }}</span></div>
+        @if($printQueue->employee)
+        <div class="flex justify-between"><span>Kapster:</span><span>{{ $printQueue->employee->name }}</span></div>
+        @endif
+    </div>
+
+    <div class="text-xs mb-3">
+        <div class="font-bold mb-1">Layanan:</div>
+        @foreach($printQueue->services as $svc)
+            <div class="flex justify-between">
+                <span>- {{ $svc->name }}</span>
+                <span>{{ number_format($svc->price, 0, ',', '.') }}</span>
+            </div>
+        @endforeach
+    </div>
+
+    @if($printQueue->notes)
+    <div class="text-xs italic border-t border-dashed border-gray-400 pt-2 mb-2">
+        Catatan: {{ $printQueue->notes }}
+    </div>
+    @endif
+
+    <div class="text-center text-xs mt-4 border-t border-dashed border-gray-400 pt-2">
+        <p>Mohon menunggu giliran</p>
+        <p>Terima kasih</p>
+    </div>
+</div>
+@endif
+@endif
+
+{{-- PRINT AREA: LAPORAN TUTUP USAHA 58mm --}}
+@if($printBusinessDayReportId)
+@php
+$printBdr = \App\Models\BusinessDayReport::withoutGlobalScopes()
+    ->with(['branch','closedBy'])
+    ->find($printBusinessDayReportId);
+$snap = $printBdr?->snapshot ?? [];
+@endphp
+@if($printBdr && !empty($snap))
+<div id="print-bdr-area" class="hidden print:block print:w-[58mm] print:p-2 print:text-xs print:mx-auto">
+    <div class="text-center font-bold text-base mb-1">{{ $printBdr->branch->name ?? config('app.name') }}</div>
+    <div class="text-center text-[10px] mb-2 border-b border-dashed border-gray-400 pb-2">
+        LAPORAN TUTUP USAHA<br>
+        {{ \Carbon\Carbon::parse($snap['business_date'])->format('d/m/Y') }}
+        · {{ strtoupper($snap['tipe_hari']) }}
+    </div>
+
+    {{-- Transaksi per shift --}}
+    @foreach($snap['shifts'] as $sh)
+        <div class="mb-2 pb-1 border-b border-dashed border-gray-400 text-[10px]">
+            <div class="font-bold">Shift {{ $sh['shift_number'] }} · {{ $sh['kasir_name'] }}</div>
+            <div class="text-[9px]">{{ $sh['shift_start'] }}–{{ $sh['shift_end'] ?? 'now' }}</div>
+            @foreach($sh['items'] as $item)
+                <div class="flex justify-between">
+                    <span>{{ $item['service_name'] }} x{{ $item['qty'] }}</span>
+                    <span>{{ number_format($item['total_harga'], 0, ',', '.') }}</span>
+                </div>
+            @endforeach
+            <div class="flex justify-between font-bold mt-1">
+                <span>Tunai/Non:</span>
+                <span>{{ number_format($sh['cash_total'], 0, ',', '.') }} / {{ number_format($sh['non_cash_total'], 0, ',', '.') }}</span>
+            </div>
+        </div>
+    @endforeach
+
+    <div class="text-[10px] mb-2 pb-1 border-b border-dashed border-gray-400">
+        <div class="flex justify-between font-bold"><span>TOTAL ORDER</span><span>{{ $snap['total_orders'] }}</span></div>
+        <div class="flex justify-between"><span>Tunai</span><span>{{ number_format($snap['total_cash'], 0, ',', '.') }}</span></div>
+        <div class="flex justify-between"><span>Non Tunai</span><span>{{ number_format($snap['total_non_cash'], 0, ',', '.') }}</span></div>
+        <div class="flex justify-between font-bold"><span>TOTAL</span><span>{{ number_format($snap['total_gross'], 0, ',', '.') }}</span></div>
+    </div>
+
+    {{-- Bagi Hasil --}}
+    <div class="text-[10px] mb-2 pb-1 border-b border-dashed border-gray-400">
+        <div class="font-bold mb-1">BAGI HASIL</div>
+        @foreach($snap['komisi_per_kapster'] as $kap)
+            <div class="flex justify-between">
+                <span>Kapster {{ $kap['name'] }}</span>
+                <span>{{ number_format($kap['amount'], 0, ',', '.') }}</span>
+            </div>
+        @endforeach
+        <div class="flex justify-between font-bold">
+            <span>Total Kapster</span>
+            <span>{{ number_format($snap['total_komisi_kapster'], 0, ',', '.') }}</span>
+        </div>
+        @foreach($snap['fee_kasir_per_kasir'] as $fee)
+            <div class="flex justify-between">
+                <span>Kasir {{ $fee['kasir_name'] }} ({{ $fee['tipe'] === 'full_day' ? 'FD' : 'HD' }})</span>
+                <span>{{ number_format($fee['fee_amount'], 0, ',', '.') }}</span>
+            </div>
+        @endforeach
+        <div class="flex justify-between font-bold">
+            <span>Total Kasir</span>
+            <span>{{ number_format($snap['total_fee_kasir'], 0, ',', '.') }}</span>
+        </div>
+        <div class="flex justify-between font-bold mt-1 pt-1 border-t border-gray-400">
+            <span>OWNER NET</span>
+            <span>{{ number_format($snap['total_owner_net'], 0, ',', '.') }}</span>
+        </div>
+    </div>
+
+    {{-- Rekonsiliasi Kas --}}
+    <div class="text-[10px] mb-2">
+        <div class="font-bold mb-1">REKONSILIASI KAS</div>
+        <div class="flex justify-between"><span>Modal awal</span><span>{{ number_format($snap['modal_awal_hari'], 0, ',', '.') }}</span></div>
+        <div class="flex justify-between"><span>+ Tunai</span><span>{{ number_format($snap['total_cash'], 0, ',', '.') }}</span></div>
+        @if($snap['cash_in'] > 0)
+            <div class="flex justify-between"><span>+ Cash In</span><span>{{ number_format($snap['cash_in'], 0, ',', '.') }}</span></div>
+        @endif
+        @foreach($snap['cash_out_by_category'] as $cat)
+            <div class="flex justify-between"><span>- {{ $cat['label'] }}</span><span>{{ number_format($cat['amount'], 0, ',', '.') }}</span></div>
+        @endforeach
+        <div class="flex justify-between font-bold"><span>Expected</span><span>{{ number_format($snap['expected_kas_akhir'], 0, ',', '.') }}</span></div>
+        <div class="flex justify-between"><span>Actual</span><span>{{ number_format($printBdr->actual_kas_akhir, 0, ',', '.') }}</span></div>
+        <div class="flex justify-between font-bold border-t border-gray-400 pt-1">
+            <span>SELISIH</span>
+            <span>{{ ($printBdr->selisih_kas ?? 0) >= 0 ? '+' : '' }}{{ number_format($printBdr->selisih_kas, 0, ',', '.') }}</span>
+        </div>
+    </div>
+
+    @if($printBdr->notes)
+    <div class="text-[10px] italic border-t border-dashed border-gray-400 pt-1 mb-2">
+        Catatan: {{ $printBdr->notes }}
+    </div>
+    @endif
+
+    <div class="text-center text-[9px] mt-3 pt-2 border-t border-dashed border-gray-400">
+        Dicetak: {{ now()->format('d/m/Y H:i') }}<br>
+        oleh {{ $printBdr->closedBy->name ?? auth()->user()->name }}
+    </div>
+</div>
+@endif
+@endif
+
     {{-- JAVASCRIPT --}}
     <script>
         document.addEventListener('alpine:init', () => {
@@ -750,6 +1041,30 @@ $printTx = \App\Models\Transaction::with(['items.service', 'items.product', 'cus
     }
 
     window.addEventListener('transaction-completed', () => openTransactionModal());
+
+    window.addEventListener('queue-created', () => {
+        // Beri waktu Livewire render print-queue-area, baru cetak
+        setTimeout(() => {
+            window.print();
+            // Reset state setelah dialog cetak ditutup (delay supaya tidak bentrok dengan print)
+            setTimeout(() => {
+                if (window.Livewire) {
+                    Livewire.dispatch('clearPrintQueue');
+                }
+            }, 1000);
+        }, 200);
+    });
+
+    window.addEventListener('business-day-closed', () => {
+        setTimeout(() => {
+            window.print();
+            setTimeout(() => {
+                if (window.Livewire) {
+                    Livewire.dispatch('clearPrintBusinessDay');
+                }
+            }, 1000);
+        }, 300);
+    });
     window.addEventListener('shift-closed', () => {
         window.location.reload();
     });

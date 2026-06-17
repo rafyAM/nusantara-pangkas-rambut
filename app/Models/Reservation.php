@@ -11,10 +11,15 @@ class Reservation extends Model
 {
     use SoftDeletes, HasFactory;
 
+    public const SOURCE_WEB     = 'web';
+    public const SOURCE_WALK_IN = 'walk_in';
+
     protected $fillable = [
         'customer_id',
         'employee_id',
         'branch_id',
+        'source',
+        'guest_name',
         'reservation_time',
         'status',
         'queue_number',
@@ -61,5 +66,18 @@ class Reservation extends Model
     public function services()
     {
         return $this->belongsToMany(Service::class, 'reservation_services');
+    }
+
+    public function scopeActiveQueue($query)
+    {
+        return $query->whereIn('status', ['pending', 'arrived'])
+            ->whereDate('reservation_time', today());
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->customer?->name
+            ?? $this->guest_name
+            ?? 'Tamu';
     }
 }

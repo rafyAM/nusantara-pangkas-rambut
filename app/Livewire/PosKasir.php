@@ -14,6 +14,7 @@ use App\Models\TransactionItem;
 use App\Models\CashierShift;
 use App\Models\CashMovement;
 use App\Models\Payment;
+use App\Models\BusinessDayReport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
@@ -23,6 +24,7 @@ class PosKasir extends Component
 {
     // --- Cart & Katalog ---
     public array $cart = [];
+    public ?int $cartKapsterId = null;
     public string $search = '';
     public string $activeTab = 'service';
 
@@ -60,9 +62,16 @@ class PosKasir extends Component
     public string $cashMovementType = 'in';
     public float $cashMovementAmount = 0;
     public string $cashMovementReason = '';
+    public string $cashMovementCategory = 'operasional';
 
     // --- Handover Shift ---
     public ?array $previousShiftInfo = null;
+
+    // --- Antrian Walk-in ---
+    public ?int $printQueueReservationId = null;
+
+    // --- Tutup Usaha (Business Day) ---
+    public ?int $printBusinessDayReportId = null;
 
     // =============================================
     //  LIFECYCLE & COMPUTED PROPERTIES
@@ -119,6 +128,45 @@ class PosKasir extends Component
         return Service::where('is_active', true)
             ->where('name', 'like', '%' . $this->search . '%')
             ->get();
+    }
+
+    #[Computed]
+    public function activeQueues()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return collect();
+        }
+
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
+
+        $query = \App\Models\Reservation::with(['customer', 'services', 'employee'])
+            ->activeQueue()
+            ->orderBy('reservation_time', 'asc');
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        return $query->get();
+    }
+
+    #[Computed]
+    public function kapsters()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return collect();
+        }
+
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
+
+        $query = \App\Models\Employee::where('is_active', true);
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        return $query->orderBy('name')->get();
     }
 
     #[Computed]
@@ -246,6 +294,350 @@ class PosKasir extends Component
             'cash_out'          => (float) $cashOut,
             'expected_cash'     => $shift->calculateExpectedCash(),
         ];
+    }
+
+    // =============================================
+    //  TUTUP USAHA (BUSINESS DAY)
+    // =============================================
+
+    /**
+     * Bangun ringkasan laporan hari operasional untuk cabang user saat ini.
+     * Mengembalikan null jika belum ada shift hari ini.
+     */
+    #[Computed]
+    public function businessDayReport(): ?array
+    {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if (!$user) {
+            return null;
+        }
+
+        // Prioritas branch_id: dari shift aktif user (paling akurat untuk konteks tutup usaha),
+        // baru fallback ke employee/branches user atau super_admin default.
+        $activeShift = $this->getActiveShift();
+        $branchId = $activeShift?->branch_id
+            ?? $user->employee?->branch_id
+            ?? $user->branches()->first()?->id;
+        if (!$branchId && $user->hasRole('super_admin')) {
+            $branchId = \App\Models\Branch::first()?->id;
+        }
+        if (!$branchId) {
+            return null;
+        }
+
+        $today = today();
+
+        // Shift yang relevan untuk tutup usaha hari ini = shift yang punya transaksi/cash movement
+        // bertanggal hari ini, ATAU shift yang sedang aktif sekarang.
+        // Ini mencegah shift stale dari hari-hari sebelumnya (yang lupa ditutup) ikut terhitung.
+        $shiftIdsFromTrx = Transaction::withoutGlobalScopes()
+            ->where('branch_id', $branchId)
+            ->whereDate('transaction_date', $today)
+            ->where('status', 'completed')
+            ->whereNotNull('cashier_shift_id')
+            ->pluck('cashier_shift_id')
+            ->unique();
+
+        $shiftIdsFromCm = CashMovement::whereHas('cashierShift', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            })
+            ->whereDate('created_at', $today)
+            ->pluck('cashier_shift_id')
+            ->unique();
+
+        $shiftIds = $shiftIdsFromTrx->merge($shiftIdsFromCm)->unique();
+
+        if ($activeShift && $activeShift->branch_id == $branchId) {
+            $shiftIds = $shiftIds->push($activeShift->id)->unique();
+        }
+
+        if ($shiftIds->isEmpty()) {
+            return null;
+        }
+
+        $shifts = CashierShift::withoutGlobalScopes()
+            ->whereIn('id', $shiftIds)
+            ->with('user')
+            ->orderBy('start_at')
+            ->get();
+
+        if ($shifts->isEmpty()) {
+            return null;
+        }
+
+        $shiftIds = $shifts->pluck('id')->all();
+
+        // Transaksi: scoped ke shift + tanggal hari ini (untuk aman jika shift aktif punya trx kemarin)
+        $transactions = Transaction::withoutGlobalScopes()
+            ->whereIn('cashier_shift_id', $shiftIds)
+            ->whereDate('transaction_date', $today)
+            ->where('status', 'completed')
+            ->with(['items.service', 'items.product', 'items.employee', 'payments'])
+            ->get();
+
+        // Cash movement hari ini saja
+        $cashMovements = CashMovement::whereIn('cashier_shift_id', $shiftIds)
+            ->whereDate('created_at', $today)
+            ->get();
+
+        // Breakdown per shift
+        $shiftsBreakdown = [];
+        foreach ($shifts as $idx => $shift) {
+            $shiftTrx = $transactions->where('cashier_shift_id', $shift->id);
+            $itemsByService = [];
+            $cashTotal = 0;
+            $nonCashTotal = 0;
+
+            foreach ($shiftTrx as $trx) {
+                foreach ($trx->payments as $p) {
+                    if ($p->method === 'cash') {
+                        $cashTotal += (float) $p->amount;
+                    } else {
+                        $nonCashTotal += (float) $p->amount;
+                    }
+                }
+                foreach ($trx->items as $item) {
+                    if ($item->item_type !== 'service' || !$item->service) {
+                        continue;
+                    }
+                    $svc = $item->service;
+                    $sid = $svc->id;
+                    if (!isset($itemsByService[$sid])) {
+                        $itemsByService[$sid] = [
+                            'service_id'     => $sid,
+                            'service_name'   => $svc->name,
+                            'qty'            => 0,
+                            'total_harga'    => 0,
+                            'komisi_kapster' => 0,
+                            'komisi_owner'   => 0,
+                        ];
+                    }
+                    $itemsByService[$sid]['qty']            += (int) $item->quantity;
+                    $itemsByService[$sid]['total_harga']    += (float) $item->subtotal;
+                    $itemsByService[$sid]['komisi_kapster'] += (float) $item->subtotal * ((float) $svc->commission_kapster_pct) / 100;
+                    $itemsByService[$sid]['komisi_owner']   += (float) $item->subtotal * ((float) $svc->commission_owner_pct) / 100;
+                }
+            }
+
+            $shiftsBreakdown[] = [
+                'id'             => $shift->id,
+                'shift_number'   => $idx + 1,
+                'kasir_name'     => $shift->user->name ?? '—',
+                'shift_start'    => $shift->start_at?->format('H:i'),
+                'shift_end'      => $shift->end_at?->format('H:i'),
+                'status'         => $shift->status,
+                'opening_cash'   => (float) $shift->opening_cash,
+                'order_count'    => $shiftTrx->count(),
+                'cash_total'     => $cashTotal,
+                'non_cash_total' => $nonCashTotal,
+                'items'          => array_values($itemsByService),
+            ];
+        }
+
+        // Komisi per kapster
+        $komisiPerKapster = [];
+        foreach ($transactions as $trx) {
+            foreach ($trx->items as $item) {
+                if ($item->item_type !== 'service' || !$item->service || !$item->employee) {
+                    continue;
+                }
+                $key = $item->employee_id;
+                if (!isset($komisiPerKapster[$key])) {
+                    $komisiPerKapster[$key] = [
+                        'employee_id' => $item->employee_id,
+                        'name'        => $item->employee->name,
+                        'amount'      => 0,
+                        'jobs'        => 0,
+                    ];
+                }
+                $komisiPerKapster[$key]['amount'] += (float) $item->subtotal * ((float) $item->service->commission_kapster_pct) / 100;
+                $komisiPerKapster[$key]['jobs']   += (int) $item->quantity;
+            }
+        }
+
+        // Totals
+        $totalGross   = (float) $transactions->sum('total_amount');
+        $totalCash    = 0;
+        $totalNonCash = 0;
+        foreach ($transactions as $trx) {
+            foreach ($trx->payments as $p) {
+                if ($p->method === 'cash') {
+                    $totalCash += (float) $p->amount;
+                } else {
+                    $totalNonCash += (float) $p->amount;
+                }
+            }
+        }
+        $totalKomisiKapster = (float) array_sum(array_column($komisiPerKapster, 'amount'));
+
+        // Fee kasir: grouped by kasir unik (bukan per-shift, supaya 1 kasir yang shift 2x tetap dihitung 1).
+        // - 1 kasir & 1 shift penuh    → full_day @100k
+        // - >1 kasir ATAU >1 shift     → masing-masing kasir half_day @50k
+        $shiftCount      = $shifts->count();
+        $uniqueKasirs    = $shifts->groupBy('user_id');
+        $kasirCount      = $uniqueKasirs->count();
+        $isFullDay       = ($kasirCount === 1 && $shiftCount === 1);
+        $tipeHari        = $isFullDay ? 'full_day' : 'half_day';
+        $feePerKasir     = $isFullDay ? 100000 : 50000;
+        $feeKasirPerKasir = $uniqueKasirs->values()->map(function ($shiftsOfKasir, $i) use ($isFullDay, $feePerKasir) {
+            $first = $shiftsOfKasir->first();
+            return [
+                'shift_id'     => $first->id,
+                'shift_number' => $i + 1,
+                'kasir_name'   => $first->user->name ?? '—',
+                'tipe'         => $isFullDay ? 'full_day' : 'half_day',
+                'fee_amount'   => (float) $feePerKasir,
+            ];
+        })->all();
+        $totalFeeKasir = (float) array_sum(array_column($feeKasirPerKasir, 'fee_amount'));
+
+        $totalOwnerNet = $totalGross - $totalKomisiKapster - $totalFeeKasir;
+
+        // Cash movements
+        $cashIn = (float) $cashMovements->where('type', 'in')->sum('amount');
+        $cashOutCollection = $cashMovements->where('type', 'out');
+        $cashOutByCategory = $cashOutCollection
+            ->groupBy(fn($m) => $m->category ?: CashMovement::CATEGORY_OTHER)
+            ->map(function ($group, $cat) {
+                return [
+                    'category' => $cat,
+                    'label'    => CashMovement::CATEGORIES[$cat] ?? ucfirst(str_replace('_', ' ', $cat)),
+                    'amount'   => (float) $group->sum('amount'),
+                    'items'    => $group->map(fn($x) => [
+                        'reason' => $x->reason,
+                        'amount' => (float) $x->amount,
+                    ])->values()->all(),
+                ];
+            })->values()->all();
+        $totalCashOut             = (float) $cashOutCollection->sum('amount');
+        $totalCashOutOperasional  = (float) $cashOutCollection->where('category', CashMovement::CATEGORY_OPERASIONAL)->sum('amount');
+
+        // Rekonsiliasi
+        $modalAwalHari    = (float) ($shifts->first()->opening_cash ?? 0);
+        $expectedKasAkhir = $modalAwalHari + $totalCash + $cashIn - $totalCashOut;
+        $selisih          = $this->actualCash > 0
+            ? ((float) $this->actualCash - $expectedKasAkhir)
+            : null;
+
+        return [
+            'business_date'              => $today->toDateString(),
+            'branch_id'                  => $branchId,
+            'shift_count'                => $shiftCount,
+            'kasir_count'                => $kasirCount,
+            'tipe_hari'                  => $tipeHari,
+            'shifts'                     => $shiftsBreakdown,
+            'total_orders'               => $transactions->count(),
+            'total_gross'                => $totalGross,
+            'total_cash'                 => $totalCash,
+            'total_non_cash'             => $totalNonCash,
+            'komisi_per_kapster'         => array_values($komisiPerKapster),
+            'total_komisi_kapster'       => $totalKomisiKapster,
+            'fee_kasir_per_kasir'        => $feeKasirPerKasir,
+            'total_fee_kasir'            => $totalFeeKasir,
+            'total_owner_net'            => $totalOwnerNet,
+            'cash_in'                    => $cashIn,
+            'cash_out_by_category'       => $cashOutByCategory,
+            'total_cash_out'             => $totalCashOut,
+            'total_cash_out_operasional' => $totalCashOutOperasional,
+            'modal_awal_hari'            => $modalAwalHari,
+            'expected_kas_akhir'         => $expectedKasAkhir,
+            'actual_kas_akhir'           => (float) $this->actualCash,
+            'selisih_kas'                => $selisih,
+            'opened_at'                  => $shifts->first()->start_at?->toDateTimeString(),
+        ];
+    }
+
+    /**
+     * Tutup hari operasional: close shift saat ini + simpan BusinessDayReport.
+     * Dipanggil dari modal Close Order. Mengeluarkan user setelah selesai (sama seperti closeShift).
+     */
+    public function tutupUsaha()
+    {
+        $shift = $this->getActiveShift();
+        if (!$shift) {
+            $this->addError('actualCash', 'Tidak ada shift aktif.');
+            return;
+        }
+
+        if ($this->actualCash <= 0) {
+            $this->addError('actualCash', 'Isi kas aktual di laci.');
+            return;
+        }
+
+        // Cek tidak ada shift lain di cabang yang masih open
+        $otherOpen = CashierShift::withoutGlobalScopes()
+            ->where('branch_id', $shift->branch_id)
+            ->where('status', 'open')
+            ->where('id', '!=', $shift->id)
+            ->exists();
+        if ($otherOpen) {
+            $this->addError('actualCash', 'Masih ada shift lain di cabang ini yang aktif. Tutup dulu sebelum Tutup Usaha.');
+            return;
+        }
+
+        $report = $this->businessDayReport;
+        if (!$report) {
+            $this->addError('actualCash', 'Belum ada data shift hari ini.');
+            return;
+        }
+
+        $expected = (float) $report['expected_kas_akhir'];
+        $selisih  = (float) $this->actualCash - $expected;
+
+        DB::beginTransaction();
+        try {
+            // 1) Tutup shift saat ini
+            $shift->close($this->actualCash, !empty($this->closingNotes) ? $this->closingNotes : null);
+
+            // 2) Simpan / update laporan hari operasional
+            $bdr = BusinessDayReport::withoutGlobalScopes()->updateOrCreate(
+                [
+                    'branch_id'     => $report['branch_id'],
+                    'business_date' => $report['business_date'],
+                ],
+                [
+                    'opened_at'                  => $report['opened_at'],
+                    'closed_at'                  => now(),
+                    'total_orders'               => $report['total_orders'],
+                    'total_gross'                => $report['total_gross'],
+                    'total_cash'                 => $report['total_cash'],
+                    'total_non_cash'             => $report['total_non_cash'],
+                    'total_komisi_kapster'       => $report['total_komisi_kapster'],
+                    'total_fee_kasir'            => $report['total_fee_kasir'],
+                    'total_owner_net'            => $report['total_owner_net'],
+                    'total_cash_out_operasional' => $report['total_cash_out_operasional'],
+                    'modal_awal_hari'            => $report['modal_awal_hari'],
+                    'expected_kas_akhir'         => $expected,
+                    'actual_kas_akhir'           => (float) $this->actualCash,
+                    'selisih_kas'                => $selisih,
+                    'status'                     => BusinessDayReport::STATUS_CLOSED,
+                    'closed_by'                  => Auth::id(),
+                    'snapshot'                   => $report,
+                    'notes'                      => $this->closingNotes ?: null,
+                ]
+            );
+
+            DB::commit();
+
+            // Pastikan tidak ada print-area lain yang tumpang tindih dengan laporan tutup usaha.
+            $this->completedTransactionId   = null;
+            $this->completedInvoiceNumber   = '';
+            $this->printQueueReservationId  = null;
+            $this->showCloseShiftModal      = false;
+
+            $this->printBusinessDayReportId = $bdr->id;
+            $this->dispatch('business-day-closed');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->addError('actualCash', 'Gagal menutup usaha: ' . $e->getMessage());
+        }
+    }
+
+    #[On('clearPrintBusinessDay')]
+    public function clearPrintBusinessDay()
+    {
+        $this->printBusinessDayReportId = null;
     }
 
     // =============================================
@@ -380,6 +772,7 @@ class PosKasir extends Component
         $this->cashMovementType = 'in';
         $this->cashMovementAmount = 0;
         $this->cashMovementReason = '';
+        $this->cashMovementCategory = CashMovement::CATEGORY_OPERASIONAL;
     }
 
     public function saveCashMovement()
@@ -419,6 +812,9 @@ class PosKasir extends Component
                     'type'             => $this->cashMovementType,
                     'amount'           => $this->cashMovementAmount,
                     'reason'           => $this->cashMovementReason,
+                    'category'         => $this->cashMovementType === 'out'
+                        ? ($this->cashMovementCategory ?: CashMovement::CATEGORY_OPERASIONAL)
+                        : null,
                 ]);
             });
         } catch (\RuntimeException $e) {
@@ -467,6 +863,102 @@ class PosKasir extends Component
     }
 
     // =============================================
+    //  ANTRIAN WALK-IN
+    // =============================================
+
+    public function createQueueFromCart()
+    {
+        if (empty($this->cart)) {
+            $this->addError('general', 'Tambahkan layanan ke cart sebelum membuat antrian.');
+            return;
+        }
+
+        // Ambil service IDs dari cart (produk diabaikan — antrian = layanan)
+        $serviceIds = collect($this->cart)
+            ->filter(fn($item) => ($item['type'] ?? null) === 'service')
+            ->pluck('id')
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($serviceIds)) {
+            $this->addError('general', 'Antrian harus berisi minimal 1 layanan.');
+            return;
+        }
+
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if (!$user) {
+            $this->addError('general', 'User tidak terautentikasi.');
+            return;
+        }
+
+        $branchId = $user->employee?->branch_id ?? $user->branches()->first()?->id;
+        if (!$branchId && $user->hasRole('super_admin')) {
+            $branchId = \App\Models\Branch::first()?->id;
+        }
+        if (!$branchId) {
+            $this->addError('general', 'Cabang tidak ditemukan untuk akun ini.');
+            return;
+        }
+
+        // Resolve customer: existing > new (kalau ada nama + phone) > guest_name
+        $customerId = $this->selectedCustomerId;
+        $guestName  = null;
+
+        if (!$customerId && !empty(trim($this->customerName))) {
+            if (!empty(trim($this->customerPhone))) {
+                $customer = Customer::firstOrCreate(
+                    ['phone' => trim($this->customerPhone)],
+                    ['name'  => trim($this->customerName)]
+                );
+                $customerId = $customer->id;
+            } else {
+                $guestName = trim($this->customerName);
+            }
+        }
+
+        DB::beginTransaction();
+        try {
+            $reservation = \App\Models\Reservation::create([
+                'customer_id'      => $customerId,
+                'employee_id'      => $this->cartKapsterId ?: null,
+                'branch_id'        => $branchId,
+                'source'           => \App\Models\Reservation::SOURCE_WALK_IN,
+                'guest_name'       => $guestName,
+                'reservation_time' => now(),
+                'status'           => 'arrived',
+            ]);
+
+            $reservation->services()->sync($serviceIds);
+
+            DB::commit();
+
+            // Reset cart setelah antrian dibuat
+            $this->cart = [];
+            $this->cartKapsterId = null;
+            $this->clearCustomer();
+
+            // Cegah tumpang tindih dengan print-area lain.
+            $this->completedTransactionId   = null;
+            $this->completedInvoiceNumber   = '';
+            $this->printBusinessDayReportId = null;
+
+            $this->printQueueReservationId = $reservation->id;
+            $this->dispatch('queue-created');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->addError('general', 'Gagal membuat antrian: ' . $e->getMessage());
+        }
+    }
+
+    #[On('clearPrintQueue')]
+    public function clearPrintQueue()
+    {
+        $this->printQueueReservationId = null;
+    }
+
+    // =============================================
     //  RESERVASI
     // =============================================
 
@@ -498,6 +990,7 @@ class PosKasir extends Component
 
         $this->processedReservationId = $reservation->id;
         $this->cart = [];
+        $this->cartKapsterId = $reservation->employee_id ?: null;
 
         if ($reservation->customer) {
             $this->selectCustomer($reservation->customer->id, $reservation->customer->name);
@@ -550,6 +1043,16 @@ class PosKasir extends Component
                 'subtotal' => $item->price,
             ];
         }
+    }
+
+    public function hasServiceInCart(): bool
+    {
+        foreach ($this->cart as $item) {
+            if (($item['type'] ?? null) === 'service') {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function removeFromCart($cartKey)
@@ -644,10 +1147,21 @@ class PosKasir extends Component
             }
         }
 
-        $employeeId = $employee?->id;
-        if (!$employeeId) {
-            $fallbackEmployee = \App\Models\Employee::where('branch_id', $branchId)->first();
-            $employeeId = $fallbackEmployee?->id;
+        // Validasi kapster: jika ada layanan di cart, kapster wajib dipilih
+        if ($this->hasServiceInCart() && empty($this->cartKapsterId)) {
+            $this->addError('cartKapsterId', 'Pilih kapster untuk transaksi ini.');
+            $this->addError('general', 'Pilih kapster untuk transaksi ini.');
+            return;
+        }
+
+        // Tentukan employee_id untuk transactions:
+        // - Jika ada service di cart, pakai kapster yang dipilih.
+        // - Jika murni produk, fallback ke employee user / pertama di cabang (kompatibilitas FK NOT NULL).
+        if ($this->cartKapsterId) {
+            $employeeId = (int) $this->cartKapsterId;
+        } else {
+            $employeeId = $employee?->id
+                ?? \App\Models\Employee::where('branch_id', $branchId)->value('id');
 
             if (!$employeeId) {
                 $this->addError('general', 'Tidak dapat memproses! Cabang ini belum memiliki satupun Data Karyawan/Kapster terdaftar.');
@@ -715,7 +1229,7 @@ class PosKasir extends Component
                     'item_type'      => $cartItem['type'],
                     'service_id'     => $cartItem['type'] === 'service' ? $cartItem['id'] : null,
                     'product_id'     => $cartItem['type'] === 'product' ? $cartItem['id'] : null,
-                    'employee_id'    => null,
+                    'employee_id'    => $cartItem['type'] === 'service' ? $this->cartKapsterId : null,
                     'quantity'       => $cartItem['quantity'],
                     'price'          => $cartItem['price'],
                     'subtotal'       => $cartItem['subtotal'],
@@ -764,6 +1278,7 @@ class PosKasir extends Component
 
             // Reset UI
             $this->cart = [];
+            $this->cartKapsterId = null;
             $this->clearCustomer();
             $this->paymentAmount = null;
             $this->discountValue = 0;
